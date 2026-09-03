@@ -1,0 +1,29 @@
+/**
+ * Evade-brand overrides for the player skin.
+ *
+ * The player ships its own default skin; these rules only align the surface it
+ * sits on with the site (deep ink, 12px card radius, hairline edge). Control
+ * layout, iconography and behaviour are the player's own.
+ */
+.evade-player-surface {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--surface-page-deep);
+  box-shadow: var(--inset-hairline);
+}
+
+.evade-player-surface > *,
+.evade-player-surface evade-player {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Full-bleed on small screens: the artwork is the interface there. */
+@media (width < 48rem) {
+  .evade-player-surface {
+    border-radius: 0;
+  }
+}

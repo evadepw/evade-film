@@ -1,0 +1,184 @@
+/**
+ * Evade Films — design tokens.
+ *
+ * Ported verbatim from the «Evade Films — Design System» project
+ * (claude.ai/design/p/a236bf0e-e1fa-4ac4-b7a8-f698f684ef77).
+ *
+ * Dark-only, fully monochrome: two ramps (ink for surfaces, silver for every
+ * foreground) plus the chrome gradient lifted from the logo. The only
+ * chromatic values in the system are danger and the live dot.
+ *
+ * This file is the single source of truth for raw values. `globals.css` maps
+ * them onto Tailwind's theme namespaces and onto the shadcn semantic variables,
+ * so swapping a token here re-themes both layers at once.
+ */
+
+:root {
+  /* --- Ink ramp (backgrounds) --- */
+  --ink-0: #08090a;
+  --ink-1: #101113;
+  --ink-2: #17181a;
+  --ink-3: #1f2022;
+  --ink-4: #2e2e30;
+  --ink-5: #3a3b3d;
+  --ink-6: #4a4b4e;
+
+  /* --- Silver ramp (the logo's chrome, all foreground) --- */
+  --silver-1: #f5f6f6;
+  --silver-2: #d5d6d6;
+  --silver-3: #a9abab;
+  --silver-4: #7c7e7e;
+  --silver-5: #5a5c5d;
+
+  /* --- Chrome gradient: brushed-metal fill, the one brand flourish --- */
+  --chrome-grad: linear-gradient(150deg, #ffffff 0%, #d5d6d6 38%, #8e9091 62%, #edeeee 100%);
+  --chrome-grad-soft: linear-gradient(160deg, #e8e9e9 0%, #b9bbbb 55%, #d9dada 100%);
+
+  /* --- Alpha silvers (hover fills, hairlines, glass) --- */
+  --silver-a04: rgba(245, 246, 246, 0.04);
+  --silver-a08: rgba(245, 246, 246, 0.08);
+  --silver-a12: rgba(245, 246, 246, 0.12);
+  --silver-a20: rgba(245, 246, 246, 0.2);
+  --silver-a40: rgba(245, 246, 246, 0.4);
+  --ink-a40: rgba(8, 9, 10, 0.4);
+  --ink-a70: rgba(8, 9, 10, 0.7);
+  --ink-a90: rgba(8, 9, 10, 0.92);
+
+  /* --- Semantic surfaces --- */
+  --surface-page: var(--ink-1);
+  --surface-page-deep: var(--ink-0); /* player, full-bleed hero */
+  --surface-card: var(--ink-2);
+  --surface-raised: var(--ink-3); /* menus, dialogs, hovered card */
+  --surface-input: var(--ink-2);
+  --surface-hover: var(--silver-a04);
+  --surface-selected: var(--silver-a08);
+  --surface-glass: rgba(23, 24, 26, 0.72); /* + backdrop-filter: blur(20px) */
+  --surface-scrim: var(--ink-a70);
+
+  /* --- Semantic text --- */
+  --text-primary: var(--silver-1);
+  --text-secondary: var(--silver-3);
+  --text-muted: var(--silver-4);
+  --text-disabled: var(--silver-5);
+  --text-inverse: var(--ink-0); /* on silver buttons */
+
+  /* --- Borders: hairlines only --- */
+  --border-hairline: var(--silver-a08);
+  --border-subtle: var(--silver-a12);
+  --border-strong: var(--silver-a20);
+  --border-focus: var(--silver-1);
+
+  /* --- Functional states. Never decorative. --- */
+  --state-danger: #d06a63;
+  --state-danger-quiet: rgba(208, 106, 99, 0.16);
+  --state-live: #e5484d;
+
+  /* --- Media protection --- */
+  --scrim-bottom: linear-gradient(
+    to top,
+    rgba(8, 9, 10, 0.95) 0%,
+    rgba(8, 9, 10, 0.72) 28%,
+    rgba(8, 9, 10, 0) 72%
+  );
+  --scrim-left: linear-gradient(
+    to right,
+    rgba(8, 9, 10, 0.94) 0%,
+    rgba(8, 9, 10, 0.62) 42%,
+    rgba(8, 9, 10, 0) 82%
+  );
+  --scrim-flat: rgba(8, 9, 10, 0.48);
+  --placeholder-fill: linear-gradient(135deg, #1f2022 0%, #17181a 52%, #26272a 100%);
+
+  /* --- Type scale --- */
+  --fs-display-1: 64px;
+  --fs-display-2: 44px;
+  --fs-display-3: 32px;
+  --fs-title-1: 24px;
+  --fs-title-2: 20px;
+  --fs-title-3: 17px;
+  --fs-body: 15px;
+  --fs-body-sm: 13px;
+  --fs-caption: 12px;
+  --fs-micro: 11px;
+
+  --lh-tight: 1.04;
+  --lh-title: 1.18;
+  --lh-body: 1.55;
+  --lh-loose: 1.7;
+
+  --fw-light: 300;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --ls-display: -0.03em;
+  --ls-title: -0.015em;
+  --ls-body: 0;
+  --ls-label: 0.08em;
+  --ls-overline: 0.18em;
+
+  /* --- Spacing: 4px base, deliberately jumps 32 → 56 → 96 --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 56px;
+  --space-8: 96px;
+  --space-9: 144px;
+
+  --gutter-page: 56px;
+  --gutter-page-mobile: 20px;
+  --rail-gap: 16px;
+  --row-gap: 56px;
+  --max-content: 1440px;
+  --max-prose: 62ch;
+  --header-h: 72px;
+  --tabbar-h: 64px;
+  --player-bar-h: 96px;
+
+  /* --- Shape --- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-sheet: 16px;
+  --focus-ring: 0 0 0 2px var(--ink-0), 0 0 0 3.5px var(--silver-1);
+
+  /* --- Elevation: surface value first, shadow second --- */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 24px 64px -16px rgba(0, 0, 0, 0.72);
+  --shadow-sheet: 0 40px 120px -24px rgba(0, 0, 0, 0.8);
+  --inset-hairline: inset 0 0 0 1px var(--silver-a08);
+  --inset-hairline-strong: inset 0 0 0 1px var(--silver-a20);
+  --glow-focus: 0 0 0 1px var(--silver-1), 0 0 24px -4px rgba(245, 246, 246, 0.28);
+  --blur-glass: blur(20px) saturate(0.9);
+  --blur-scrim: blur(48px);
+
+  /* --- Motion: ease-out only, fades and short translations --- */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 250ms;
+  --dur-scene: 400ms;
+  --t-control: all var(--dur-fast) var(--ease-out);
+  --t-surface: all var(--dur-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-scene: 1ms;
+  }
+}

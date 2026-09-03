@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Vendored at install time from node_modules (see scripts/vendor-player.mjs)
+/public/vendor
+/.idea/

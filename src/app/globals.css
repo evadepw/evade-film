@@ -1,26 +1,272 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Evade Films is a dark-only system. There is no light theme and no theme
+ * switch — the `dark` variant is kept only so shadcn primitives that ship
+ * `dark:` rules keep working, and it is always on (see the `.dark` class on
+ * <html> in `app/layout.tsx`).
+ */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* --- Ramps, exposed as Tailwind colours (bg-ink-2, text-silver-3, …) --- */
+  --color-ink-0: var(--ink-0);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-ink-6: var(--ink-6);
+  --color-silver-1: var(--silver-1);
+  --color-silver-2: var(--silver-2);
+  --color-silver-3: var(--silver-3);
+  --color-silver-4: var(--silver-4);
+  --color-silver-5: var(--silver-5);
+  --color-silver-a04: var(--silver-a04);
+  --color-silver-a08: var(--silver-a08);
+  --color-silver-a12: var(--silver-a12);
+  --color-silver-a20: var(--silver-a20);
+  --color-silver-a40: var(--silver-a40);
+  --color-live: var(--state-live);
+
+  /* --- Semantic aliases (also what every shadcn primitive resolves to) --- */
+  --color-background: var(--surface-page);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--silver-1);
+  --color-primary-foreground: var(--text-inverse);
+  --color-secondary: var(--silver-a08);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--silver-a08);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--silver-a08);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--state-danger);
+  --color-border: var(--border-subtle);
+  --color-input: var(--border-subtle);
+  --color-ring: var(--silver-1);
+
+  /* --- Type --- */
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-manrope), system-ui, sans-serif;
+  --font-heading: var(--font-unbounded), var(--font-manrope), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --text-display-1: var(--fs-display-1);
+  --text-display-1--line-height: var(--lh-tight);
+  --text-display-1--letter-spacing: var(--ls-display);
+  --text-display-2: var(--fs-display-2);
+  --text-display-2--line-height: var(--lh-tight);
+  --text-display-2--letter-spacing: var(--ls-display);
+  --text-display-3: var(--fs-display-3);
+  --text-display-3--line-height: var(--lh-title);
+  --text-display-3--letter-spacing: var(--ls-display);
+  --text-title-1: var(--fs-title-1);
+  --text-title-1--line-height: var(--lh-title);
+  --text-title-1--letter-spacing: var(--ls-title);
+  --text-title-2: var(--fs-title-2);
+  --text-title-2--line-height: var(--lh-title);
+  --text-title-2--letter-spacing: var(--ls-title);
+  --text-title-3: var(--fs-title-3);
+  --text-title-3--line-height: var(--lh-title);
+  --text-title-3--letter-spacing: var(--ls-title);
+  --text-body: var(--fs-body);
+  --text-body--line-height: var(--lh-body);
+  --text-body-sm: var(--fs-body-sm);
+  --text-body-sm--line-height: 1.5;
+  --text-caption: var(--fs-caption);
+  --text-caption--line-height: 1.4;
+  --text-micro: var(--fs-micro);
+  --text-micro--line-height: 1.2;
+
+  /* --- Shape. Controls 8, cards 12, sheets 16 — the token scale, no more. --- */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-xl);
+  --radius-3xl: var(--radius-xl);
+  --radius-4xl: var(--radius-xl);
+
+  /* --- Elevation --- */
+  --shadow-menu: var(--shadow-2);
+  --shadow-popover: var(--shadow-3);
+  --shadow-sheet: var(--shadow-sheet);
+
+  /* --- Motion --- */
+  --ease-evade: var(--ease-out);
+  --ease-entrance: var(--ease-entrance);
+
+  /* --- Layout --- */
+  --spacing-gutter: var(--gutter-page);
+  --spacing-header: var(--header-h);
+  --container-content: var(--max-content);
+  --animate-rise: rise var(--dur-scene) var(--ease-entrance) both;
+  --animate-fade: fade var(--dur-slow) var(--ease-out) both;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * shadcn primitives read these raw names directly. Pointing them at Evade
+ * tokens is what keeps `<Button>`, `<Select>`, `<Dialog>` on-brand without
+ * per-component overrides.
+ */
+:root,
+.dark {
+  --background: var(--surface-page);
+  --foreground: var(--text-primary);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--silver-1);
+  --primary-foreground: var(--text-inverse);
+  --secondary: var(--silver-a08);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--silver-a08);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--silver-a08);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--state-danger);
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--silver-1);
+  --radius: 10px;
+  --sidebar: var(--surface-card);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--silver-1);
+  --sidebar-primary-foreground: var(--text-inverse);
+  --sidebar-accent: var(--silver-a08);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--silver-1);
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-title);
+    line-height: var(--lh-title);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* A 2px ink gap then a solid silver ring, so focus reads on ink and artwork alike. */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  ::selection {
+    background: var(--silver-a20);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--silver-a12);
+    border-radius: var(--radius-pill);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--silver-a20);
+    background-clip: content-box;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Page gutters: 20px on mobile, 56px from `md` up, per the spacing tokens. */
+  .page-gutter {
+    padding-inline: var(--gutter-page-mobile);
+  }
+
+  @media (width >= 48rem) {
+    .page-gutter {
+      padding-inline: var(--gutter-page);
+    }
+  }
+
+  /* Labels and overlines: 11px semibold uppercase, letterspaced. */
+  .type-label {
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .type-overline {
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-overline);
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  /* Glass: only over video, artwork or a scrolling page — never over flat ink. */
+  .surface-glass {
+    background: var(--surface-glass);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+  }
+
+  /* Horizontal rails hide their scrollbar; the arrow buttons are the affordance. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

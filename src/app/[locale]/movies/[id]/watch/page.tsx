@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { PageSection } from "@/components/layout/page-section";
 import { catalogService } from "@/lib/api/services/catalog.service";
 import { orNotFound } from "@/lib/api/not-found";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { toLocale } from "@/lib/i18n/locale";
 import { formatDuration, joinMeta } from "@/lib/format";
 import type { PlaybackSource } from "@/lib/domain/models";
 
@@ -17,29 +18,31 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/movies/[id]/watch">): Promise<Metadata> {
-  const { id } = await params;
+}: PageProps<"/[locale]/movies/[id]/watch">): Promise<Metadata> {
+  const { locale, id } = await params;
+  const t = getDictionary(toLocale(locale));
   try {
     const movie = await catalogService.getMovie(id);
-    return { title: `${movie.title} · ${dictionary.player.title}` };
+    return { title: `${movie.title} · ${t.player.title}` };
   } catch {
-    return { title: dictionary.player.title };
+    return { title: t.player.title };
   }
 }
 
-export default async function WatchMoviePage({ params }: PageProps<"/movies/[id]/watch">) {
-  const { id } = await params;
+export default async function WatchMoviePage({ params }: PageProps<"/[locale]/movies/[id]/watch">) {
+  const { locale, id } = await params;
+  const t = getDictionary(toLocale(locale));
   const movie = await orNotFound(catalogService.getMovie(id));
 
   const facts: Array<[string, string]> = [
-    movie.originalTitle ? [dictionary.title.original, movie.originalTitle] : null,
-    movie.ageRating ? [dictionary.title.ageRating, movie.ageRating] : null,
+    movie.originalTitle ? [t.title.original, movie.originalTitle] : null,
+    movie.ageRating ? [t.title.ageRating, movie.ageRating] : null,
     movie.audioTracks.length
-      ? [dictionary.title.voiceover, movie.audioTracks.map((track) => track.label).join(" · ")]
+      ? [t.title.voiceover, movie.audioTracks.map((track) => track.label).join(" · ")]
       : null,
     movie.subtitleTracks.length
-      ? [dictionary.title.subtitles, movie.subtitleTracks.map((track) => track.label).join(" · ")]
-      : [dictionary.title.subtitles, dictionary.title.noSubtitles],
+      ? [t.title.subtitles, movie.subtitleTracks.map((track) => track.label).join(" · ")]
+      : [t.title.subtitles, t.title.noSubtitles],
   ].filter((entry): entry is [string, string] => entry !== null);
 
   // A title can exist in the catalogue before its video finishes transcoding.
@@ -56,7 +59,7 @@ export default async function WatchMoviePage({ params }: PageProps<"/movies/[id]
         <Button asChild variant="ghost" size="sm" className="mb-5 -ml-2">
           <Link href={movie.href}>
             <ChevronLeft strokeWidth={1.5} />
-            {dictionary.action.back}
+            {t.action.back}
           </Link>
         </Button>
 
@@ -69,7 +72,7 @@ export default async function WatchMoviePage({ params }: PageProps<"/movies/[id]
             audioTracks={movie.audioTracks}
           />
         ) : (
-          <StateBlock title={dictionary.empty.playback} hint={dictionary.empty.playbackHint} />
+          <StateBlock title={t.empty.playback} hint={t.empty.playbackHint} />
         )}
 
         <div className="mt-8 grid gap-14 md:grid-cols-[1fr_260px]">

@@ -8,24 +8,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
+import {
+  AGE_RATINGS,
+  ANY,
+  orderings,
+  isFiltered as hasFilters,
+  type CatalogFilters,
+} from "@/lib/catalog-filters";
 import type { AgeRating } from "@/lib/api/types";
-
-export const AGE_RATINGS: AgeRating[] = ["0+", "6+", "12+", "16+", "18+"];
-
-export const ORDERINGS = [
-  { value: "-created_at", label: dictionary.catalog.sortNew },
-  { value: "created_at", label: dictionary.catalog.sortOld },
-  { value: "title", label: dictionary.catalog.sortAz },
-  { value: "-year", label: dictionary.catalog.sortYear },
-] as const;
-
-export const ANY = "any";
-
-export interface CatalogFilters {
-  ageRating: AgeRating | null;
-  ordering: string;
-}
 
 export interface FilterBarProps {
   filters: CatalogFilters;
@@ -40,7 +31,9 @@ export interface FilterBarProps {
  * "air is the brand", so a filter panel is not a place to add more chrome.
  */
 export function FilterBar({ filters, onChange, onReset, summary }: FilterBarProps) {
-  const isFiltered = filters.ageRating !== null || filters.ordering !== ORDERINGS[0].value;
+  const t = useDictionary();
+
+  const filtered = hasFilters(filters);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -50,11 +43,11 @@ export function FilterBar({ filters, onChange, onReset, summary }: FilterBarProp
           onChange({ ageRating: value === ANY ? null : (value as AgeRating) })
         }
       >
-        <SelectTrigger className="w-[180px]" aria-label={dictionary.catalog.anyRating}>
-          <SelectValue placeholder={dictionary.catalog.anyRating} />
+        <SelectTrigger className="w-[180px]" aria-label={t.catalog.anyRating}>
+          <SelectValue placeholder={t.catalog.anyRating} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ANY}>{dictionary.catalog.anyRating}</SelectItem>
+          <SelectItem value={ANY}>{t.catalog.anyRating}</SelectItem>
           {AGE_RATINGS.map((rating) => (
             <SelectItem key={rating} value={rating}>
               {rating}
@@ -64,11 +57,11 @@ export function FilterBar({ filters, onChange, onReset, summary }: FilterBarProp
       </Select>
 
       <Select value={filters.ordering} onValueChange={(ordering) => onChange({ ordering })}>
-        <SelectTrigger className="w-[200px]" aria-label={dictionary.catalog.sort}>
+        <SelectTrigger className="w-[200px]" aria-label={t.catalog.sort}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {ORDERINGS.map((option) => (
+          {orderings(t).map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
@@ -80,9 +73,9 @@ export function FilterBar({ filters, onChange, onReset, summary }: FilterBarProp
 
       {summary ? <span className="type-overline text-muted-foreground">{summary}</span> : null}
 
-      {isFiltered && onReset ? (
+      {filtered && onReset ? (
         <Button variant="ghost" size="sm" onClick={onReset}>
-          {dictionary.action.reset}
+          {t.action.reset}
         </Button>
       ) : null}
     </div>

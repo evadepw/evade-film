@@ -14,15 +14,18 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { ContentRow } from "@/components/interactions/content-row";
 import { ListShell } from "@/components/account/list-shell";
-import { STATUS_LABELS } from "@/components/interactions/watchlist-button";
+import { statusLabels } from "@/components/interactions/watchlist-button";
 import { useMyWatchlist } from "@/hooks/use-me";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import type { WatchlistStatus } from "@/lib/domain/models";
 
 const ANY = "any";
 
 /** The shelf, filtered the two ways the endpoint supports: status and favourites. */
 export function WatchlistList() {
+  const t = useDictionary();
+  const labels = statusLabels(t);
+
   const [status, setStatus] = useState<WatchlistStatus | typeof ANY>(ANY);
   const [favorite, setFavorite] = useState(false);
 
@@ -33,13 +36,13 @@ export function WatchlistList() {
 
   return (
     <ListShell
-      title={dictionary.watchlist.title}
+      title={t.watchlist.title}
       total={list.total}
       isLoading={list.isLoading}
       isError={list.isError}
       isEmpty={list.items.length === 0}
-      emptyTitle={dictionary.watchlist.empty}
-      emptyHint={dictionary.watchlist.emptyHint}
+      emptyTitle={t.watchlist.empty}
+      emptyHint={t.watchlist.emptyHint}
       hasMore={list.hasMore}
       isLoadingMore={list.isLoadingMore}
       onLoadMore={() => void list.loadMore()}
@@ -50,21 +53,21 @@ export function WatchlistList() {
             size="sm"
             pressed={favorite}
             onPressedChange={setFavorite}
-            aria-label={dictionary.watchlist.onlyFavorites}
+            aria-label={t.watchlist.onlyFavorites}
           >
             <Star strokeWidth={1.5} />
-            {dictionary.watchlist.onlyFavorites}
+            {t.watchlist.onlyFavorites}
           </Toggle>
 
           <Select value={status} onValueChange={(value) => setStatus(value as WatchlistStatus)}>
-            <SelectTrigger size="sm" className="w-[170px]" aria-label={dictionary.watchlist.status}>
+            <SelectTrigger size="sm" className="w-[170px]" aria-label={t.watchlist.status}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ANY}>{dictionary.watchlist.anyStatus}</SelectItem>
-              {(Object.keys(STATUS_LABELS) as WatchlistStatus[]).map((value) => (
+              <SelectItem value={ANY}>{t.watchlist.anyStatus}</SelectItem>
+              {(Object.keys(labels) as WatchlistStatus[]).map((value) => (
                 <SelectItem key={value} value={value}>
-                  {STATUS_LABELS[value]}
+                  {labels[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -83,10 +86,10 @@ export function WatchlistList() {
                   size={16}
                   strokeWidth={1.5}
                   className="fill-silver-1 text-silver-1"
-                  aria-label={dictionary.watchlist.favorite}
+                  aria-label={t.watchlist.favorite}
                 />
               ) : null}
-              <Badge variant="outline">{STATUS_LABELS[entry.status]}</Badge>
+              <Badge variant="outline">{labels[entry.status]}</Badge>
             </div>
           }
         >

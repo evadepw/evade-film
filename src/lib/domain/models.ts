@@ -45,6 +45,13 @@ export interface AudioTrack {
   language: string;
   /** Ready-to-render label: studio, explicit label or language name. */
   label: string;
+  /**
+   * The dubbing studio, kept apart from `label` as well as inside it. The label
+   * is a sentence («Русский (LostFilm)»); these two are the thing itself, which
+   * is what a filter or a studio page would need.
+   */
+  studio: string | null;
+  studioId: number | null;
 }
 
 export interface SubtitleTrack {

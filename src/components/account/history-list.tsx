@@ -11,13 +11,15 @@ import {
 import { ContentRow } from "@/components/interactions/content-row";
 import { ListShell } from "@/components/account/list-shell";
 import { useMyHistory } from "@/hooks/use-me";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { contentMeta, formatRelativeTime, formatRemaining, joinMeta } from "@/lib/format";
 
 type Filter = "all" | "finished" | "unfinished";
 
 /** Everything the viewer has played, most recent first. */
 export function HistoryList() {
+  const t = useDictionary();
+
   const [filter, setFilter] = useState<Filter>("all");
 
   const list = useMyHistory({
@@ -26,13 +28,13 @@ export function HistoryList() {
 
   return (
     <ListShell
-      title={dictionary.history.title}
+      title={t.history.title}
       total={list.total}
       isLoading={list.isLoading}
       isError={list.isError}
       isEmpty={list.items.length === 0}
-      emptyTitle={dictionary.history.empty}
-      emptyHint={dictionary.history.emptyHint}
+      emptyTitle={t.history.empty}
+      emptyHint={t.history.emptyHint}
       hasMore={list.hasMore}
       isLoadingMore={list.isLoadingMore}
       onLoadMore={() => void list.loadMore()}
@@ -43,9 +45,9 @@ export function HistoryList() {
           value={filter}
           onValueChange={(value) => value && setFilter(value as Filter)}
         >
-          <ToggleGroupItem value="all">{dictionary.history.all}</ToggleGroupItem>
-          <ToggleGroupItem value="unfinished">{dictionary.history.unfinished}</ToggleGroupItem>
-          <ToggleGroupItem value="finished">{dictionary.history.finished}</ToggleGroupItem>
+          <ToggleGroupItem value="all">{t.history.all}</ToggleGroupItem>
+          <ToggleGroupItem value="unfinished">{t.history.unfinished}</ToggleGroupItem>
+          <ToggleGroupItem value="finished">{t.history.finished}</ToggleGroupItem>
         </ToggleGroup>
       }
     >
@@ -58,13 +60,13 @@ export function HistoryList() {
             contentMeta(entry.content),
             formatRelativeTime(entry.watchedAt),
             entry.isFinished
-              ? dictionary.history.finished
+              ? t.history.finished
               : formatRemaining(entry.positionSeconds, entry.durationSeconds),
           ])}
           aside={
             <Button asChild variant="ghost" size="sm">
               <Link href={entry.content.watchHref}>
-                {entry.isFinished ? dictionary.action.watch : dictionary.history.resume}
+                {entry.isFinished ? t.action.watch : t.history.resume}
               </Link>
             </Button>
           }

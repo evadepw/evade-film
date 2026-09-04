@@ -35,14 +35,32 @@ import type {
  * Every function returns domain models, never DTOs: pages, rails and hooks all
  * consume the same shapes, and the wire format stays behind this boundary.
  */
+/**
+ * The catalogue's list endpoints resolve translations server-side and return a
+ * flat `title`, so unlike the detail endpoints they cannot be translated after
+ * the fact — the language has to travel with the request. `lang` is what the
+ * backend reads; `Accept-Language` works too, but a query parameter keeps the
+ * URL self-describing and the response cacheable per language.
+ */
+function withLang(params: CatalogListParams, locale?: string): CatalogListParams {
+  return locale ? { ...params, lang: locale } : params;
+}
+
 export const catalogService = {
-  async listMovies(params: CatalogListParams = {}): Promise<Page<TitleSummary>> {
-    const dto = await get<PaginatedDto<MovieListDto>>(endpoints.movies.list, { params });
-    return mapPage(dto, mapMovieSummary);
+  async listMovies(
+    params: CatalogListParams = {},
+    locale?: string,
+  ): Promise<Page<TitleSummary>> {
+    const dto = await get<PaginatedDto<MovieListDto>>(endpoints.movies.list, {
+      params: withLang(params, locale),
+    });
+    return mapPage(dto, (item) => mapMovieSummary(item, locale));
   },
 
   async getMovie(id: number | string, locale?: string): Promise<TitleDetail> {
-    const dto = await get<MovieDetailDto>(endpoints.movies.detail(id));
+    const dto = await get<MovieDetailDto>(endpoints.movies.detail(id), {
+      params: locale ? { lang: locale } : undefined,
+    });
     return mapMovieDetail(dto, locale);
   },
 
@@ -54,13 +72,20 @@ export const catalogService = {
     return mapPlayback(dto);
   },
 
-  async listSeries(params: CatalogListParams = {}): Promise<Page<TitleSummary>> {
-    const dto = await get<PaginatedDto<SeriesListDto>>(endpoints.series.list, { params });
-    return mapPage(dto, mapSeriesSummary);
+  async listSeries(
+    params: CatalogListParams = {},
+    locale?: string,
+  ): Promise<Page<TitleSummary>> {
+    const dto = await get<PaginatedDto<SeriesListDto>>(endpoints.series.list, {
+      params: withLang(params, locale),
+    });
+    return mapPage(dto, (item) => mapSeriesSummary(item, locale));
   },
 
   async getSeries(id: number | string, locale?: string): Promise<TitleDetail> {
-    const dto = await get<SeriesDetailDto>(endpoints.series.detail(id));
+    const dto = await get<SeriesDetailDto>(endpoints.series.detail(id), {
+      params: locale ? { lang: locale } : undefined,
+    });
     return mapSeriesDetail(dto, locale);
   },
 
@@ -88,10 +113,14 @@ export const catalogService = {
   },
 
   /** Free-text search across both kinds, merged and sorted by relevance-ish. */
-  async searchTitles(query: string, params: CatalogListParams = {}): Promise<TitleSummary[]> {
+  async searchTitles(
+    query: string,
+    params: CatalogListParams = {},
+    locale?: string,
+  ): Promise<TitleSummary[]> {
     const [movies, series] = await Promise.all([
-      this.listMovies({ ...params, search: query }),
-      this.listSeries({ ...params, search: query }),
+      this.listMovies({ ...params, search: query }, locale),
+      this.listSeries({ ...params, search: query }, locale),
     ]);
     return [...movies.items, ...series.items];
   },

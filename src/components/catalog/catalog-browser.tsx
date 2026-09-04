@@ -1,22 +1,30 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { FilterBar, ORDERINGS, type CatalogFilters } from "@/components/catalog/filter-bar";
+import { FilterBar } from "@/components/catalog/filter-bar";
 import { TitleGrid } from "@/components/catalog/title-grid";
 import { TitleGridSkeleton } from "@/components/catalog/skeletons";
 import { StateBlock } from "@/components/feedback/state-block";
 import { useCatalogList } from "@/hooks/use-catalog";
-import { dictionary } from "@/lib/i18n/dictionary";
-import type { AgeRating } from "@/lib/api/types";
-import type { TitleKind } from "@/lib/domain/models";
-
-const DEFAULT_ORDERING = ORDERINGS[0].value;
+import { useDictionary } from "@/lib/i18n/dictionary-context";
+import {
+  DEFAULT_ORDERING,
+  parseFilters,
+  toListParams,
+  type CatalogFilters,
+} from "@/lib/catalog-filters";
+import type { Page, TitleKind, TitleSummary } from "@/lib/domain/models";
 
 export interface CatalogBrowserProps {
   kind: TitleKind;
+  /**
+   * Page one, already resolved by the server for the filters in the request.
+   * Null when that fetch failed — the browser then loads it itself.
+   */
+  initialPage?: Page<TitleSummary> | null;
 }
 
 /**
@@ -26,18 +34,25 @@ export interface CatalogBrowserProps {
  * is a shareable address, back/forward work, and the server can render the same
  * view. React Query keys off the same params, so paging is additive.
  */
-export function CatalogBrowser({ kind }: CatalogBrowserProps) {
+export function CatalogBrowser({ kind, initialPage }: CatalogBrowserProps) {
+  const t = useDictionary();
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const filters: CatalogFilters = useMemo(
-    () => ({
-      ageRating: (searchParams.get("age") as AgeRating | null) ?? null,
-      ordering: searchParams.get("sort") ?? DEFAULT_ORDERING,
-    }),
-    [searchParams],
-  );
+  const filters: CatalogFilters = useMemo(() => parseFilters(searchParams), [searchParams]);
+
+  /**
+   * The filters the server rendered `initialPage` for. It is only page one of
+   * *those* — once the viewer changes a filter the query key moves on, and
+   * handing the same page to the new key would show the old grid under the new
+   * heading.
+   */
+  const [serverFilters] = useState(filters);
+  const seeded =
+    filters.ageRating === serverFilters.ageRating &&
+    filters.ordering === serverFilters.ordering;
 
   const setFilters = useCallback(
     (next: Partial<CatalogFilters>) => {
@@ -52,10 +67,7 @@ export function CatalogBrowser({ kind }: CatalogBrowserProps) {
 
   const reset = useCallback(() => router.replace(pathname, { scroll: false }), [pathname, router]);
 
-  const query = useCatalogList(kind, {
-    ordering: filters.ordering,
-    age_rating: filters.ageRating ?? undefined,
-  });
+  const query = useCatalogList(kind, toListParams(filters), seeded ? initialPage : null);
 
   const items = query.data?.items ?? [];
 
@@ -65,28 +77,28 @@ export function CatalogBrowser({ kind }: CatalogBrowserProps) {
         filters={filters}
         onChange={setFilters}
         onReset={reset}
-        summary={query.data ? dictionary.catalog.found(query.data.total) : undefined}
+        summary={query.data ? t.catalog.found(query.data.total) : undefined}
       />
 
       {query.isPending ? (
         <TitleGridSkeleton />
       ) : query.isError ? (
         <StateBlock
-          title={dictionary.error.offline}
-          hint={dictionary.error.offlineHint}
+          title={t.error.offline}
+          hint={t.error.offlineHint}
           action={
             <Button variant="secondary" onClick={() => query.refetch()}>
-              {dictionary.action.retry}
+              {t.action.retry}
             </Button>
           }
         />
       ) : items.length === 0 ? (
         <StateBlock
-          title={dictionary.empty.search}
-          hint={dictionary.empty.searchHint}
+          title={t.empty.search}
+          hint={t.empty.searchHint}
           action={
             <Button variant="secondary" onClick={reset}>
-              {dictionary.action.reset}
+              {t.action.reset}
             </Button>
           }
         />
@@ -101,7 +113,7 @@ export function CatalogBrowser({ kind }: CatalogBrowserProps) {
                 onClick={() => query.fetchNextPage()}
                 disabled={query.isFetchingNextPage}
               >
-                {dictionary.action.more}
+                {t.action.more}
               </Button>
             </div>
           ) : null}

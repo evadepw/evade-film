@@ -230,6 +230,8 @@ export interface PaginationParams {
 export interface SearchParams extends PaginationParams {
   search?: string;
   ordering?: string;
+  /** BCP-47 tag. List endpoints resolve translations before serialising. */
+  lang?: string;
 }
 
 export interface CatalogListParams extends SearchParams {

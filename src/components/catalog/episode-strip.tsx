@@ -2,13 +2,16 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 
 import { SectionHeader } from "@/components/layout/section-header";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { formatDuration } from "@/lib/format";
-import { routes } from "@/lib/routes";
+import { localeRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { Season } from "@/lib/domain/models";
 
 export interface EpisodeStripProps {
+  /** Resolved by the page from its `[locale]` segment. */
+  locale: AppLocale;
   seriesId: number;
   season: Season;
   /** Episode currently in the player, marked rather than linked away. */
@@ -22,16 +25,18 @@ export interface EpisodeStripProps {
  * with it. A hairline per row, a mono duration, and one silver marker for the
  * episode that is playing.
  */
-export function EpisodeStrip({ seriesId, season, activeNumber }: EpisodeStripProps) {
+export function EpisodeStrip({ seriesId, season, activeNumber, locale }: EpisodeStripProps) {
+  const t = getDictionary(locale);
+  const routes = localeRoutes(locale);
   const episodes = season.episodes.filter((episode) => episode.isPublished);
   if (episodes.length === 0) return null;
 
   return (
     <section>
       <SectionHeader
-        overline={dictionary.title.seasonN(season.number)}
-        title={dictionary.title.episodes}
-        note={dictionary.title.episodesCount(episodes.length)}
+        overline={t.title.seasonN(season.number)}
+        title={t.title.episodes}
+        note={t.title.episodesCount(episodes.length)}
         className="mb-2"
       />
 

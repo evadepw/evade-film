@@ -3,22 +3,24 @@
 import { ContentRow } from "@/components/interactions/content-row";
 import { ListShell } from "@/components/account/list-shell";
 import { useMyRatings } from "@/hooks/use-me";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { formatRelativeTime } from "@/lib/format";
 
 /** Every score the viewer has given, newest first. */
 export function RatingsList() {
+  const t = useDictionary();
+
   const list = useMyRatings();
 
   return (
     <ListShell
-      title={dictionary.account.ratings}
+      title={t.account.ratings}
       total={list.total}
       isLoading={list.isLoading}
       isError={list.isError}
       isEmpty={list.items.length === 0}
-      emptyTitle={dictionary.account.noRatings}
-      emptyHint={dictionary.account.noRatingsHint}
+      emptyTitle={t.account.noRatings}
+      emptyHint={t.account.noRatingsHint}
       hasMore={list.hasMore}
       isLoadingMore={list.isLoadingMore}
       onLoadMore={() => void list.loadMore()}

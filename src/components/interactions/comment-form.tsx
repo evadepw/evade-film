@@ -6,7 +6,7 @@ import { EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { cn } from "@/lib/utils";
 
 export interface CommentFormProps {
@@ -29,8 +29,8 @@ export interface CommentFormProps {
  * the one state marker this system already draws.
  */
 export function CommentForm({
-  placeholder = dictionary.comments.placeholder,
-  submitLabel = dictionary.comments.submit,
+  placeholder,
+  submitLabel,
   initialBody = "",
   initialSpoiler = false,
   autoFocus,
@@ -39,6 +39,10 @@ export function CommentForm({
   onCancel,
   className,
 }: CommentFormProps) {
+  const t = useDictionary();
+  const hint = placeholder ?? t.comments.placeholder;
+  const submitText = submitLabel ?? t.comments.submit;
+
   const [body, setBody] = useState(initialBody);
   const [isSpoiler, setIsSpoiler] = useState(initialSpoiler);
 
@@ -60,7 +64,7 @@ export function CommentForm({
       <Textarea
         value={body}
         autoFocus={autoFocus}
-        placeholder={placeholder}
+        placeholder={hint}
         onChange={(event) => setBody(event.target.value)}
         // Enter is a newline in a comment; the shortcut is the modified one.
         onKeyDown={(event) => {
@@ -74,22 +78,22 @@ export function CommentForm({
           size="sm"
           pressed={isSpoiler}
           onPressedChange={setIsSpoiler}
-          aria-label={dictionary.comments.spoiler}
+          aria-label={t.comments.spoiler}
         >
           <EyeOff strokeWidth={1.5} />
-          {dictionary.comments.spoiler}
+          {t.comments.spoiler}
         </Toggle>
 
         <span className="flex-1" />
 
         {onCancel ? (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            {dictionary.comments.cancel}
+            {t.comments.cancel}
           </Button>
         ) : null}
 
         <Button type="submit" size="sm" disabled={!trimmed || pending}>
-          {submitLabel}
+          {submitText}
         </Button>
       </div>
     </form>

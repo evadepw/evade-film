@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { PlaybackState, SeasonOption } from "evade-player";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import type {
+  EvadePlayerElement,
+  PlaybackErrorDetail,
+  PlaybackState,
+  ReloadOptions,
+  SeasonOption,
+} from "evade-player";
 
+import { Button } from "@/components/ui/button";
+import { StateBlock } from "@/components/feedback/state-block";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { cn } from "@/lib/utils";
 
 import "./video-player.css";
@@ -11,10 +20,89 @@ const SCRIPT_SRC = "/vendor/evade-player/evade-player.js";
 const STYLE_HREF = "/vendor/evade-player/evade-player.css";
 const TAG = "evade-player";
 
+/** A bundle that arrives but never registers the element is broken, not slow. */
+const DEFINE_TIMEOUT_MS = 15_000;
+
+type LoadStatus = "loading" | "ready" | "failed";
+
+/**
+ * Loads the vendored player bundle, once per document.
+ *
+ * `customElements.whenDefined` never rejects and never times out, so on its own
+ * a bundle that 404s left the surface below stuck waiting: an empty rectangle,
+ * no message, nothing to retry. The bundle is copied into `public/` by
+ * `postinstall`, so a deploy that skips lifecycle scripts produces exactly that.
+ * The script's own `error` event is the signal that was missing.
+ */
+let pending: Promise<void> | null = null;
+
+function loadPlayer(): Promise<void> {
+  if (pending) return pending;
+
+  pending = new Promise<void>((resolve, reject) => {
+    if (!document.querySelector(`link[href="${STYLE_HREF}"]`)) {
+      const style = document.createElement("link");
+      style.rel = "stylesheet";
+      style.href = STYLE_HREF;
+      document.head.append(style);
+    }
+
+    // An earlier mount already registered it.
+    if (customElements.get(TAG)) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = SCRIPT_SRC;
+    script.async = true;
+    script.addEventListener(
+      "error",
+      () => {
+        // Removed so a retry fetches the file again instead of waiting on a
+        // tag that has already failed and will never fire another event.
+        script.remove();
+        reject(new Error(`Failed to load ${SCRIPT_SRC}`));
+      },
+      { once: true },
+    );
+    document.head.append(script);
+
+    const timer = setTimeout(
+      () => reject(new Error(`${TAG} was not defined within ${DEFINE_TIMEOUT_MS}ms`)),
+      DEFINE_TIMEOUT_MS,
+    );
+
+    void customElements.whenDefined(TAG).then(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+
+  // A failure must not be remembered — the retry button re-runs this.
+  pending.catch(() => {
+    pending = null;
+  });
+
+  return pending;
+}
+
 /** What the player saves, plus the length it has since learned from the media. */
 export interface PlaybackProgress extends PlaybackState {
   /** Seconds, or null before the manifest is parsed. */
   duration: number | null;
+}
+
+/**
+ * What a parent can do to a mounted player. Only the imperative bits belong
+ * here — everything declarative stays a prop.
+ */
+export interface PlayerHandle {
+  /**
+   * Swap the source in place, keeping position, voiceover, quality and volume.
+   * The URL must differ from the current one or the engine is left untouched.
+   */
+  reload(src: string, options?: ReloadOptions): void;
 }
 
 export interface EvadePlayerProps {
@@ -35,26 +123,23 @@ export interface EvadePlayerProps {
   savedState?: PlaybackState | null;
   /** Fires every few seconds while playing, on pause, and before unload. */
   onSaveState?: (progress: PlaybackProgress) => void;
+  /**
+   * Every playback failure, recovered ones included — check `fatal` first. A
+   * fatal `401`/`403` is an expired signature, which the caller answers by
+   * fetching a fresh manifest and handing it to `reload()`.
+   */
+  onPlaybackError?: (error: PlaybackErrorDetail) => void;
   onSeasonChange?: (value: string) => void;
   onEpisodeChange?: (value: string) => void;
   onVoiceoverChange?: (value: string) => void;
   className?: string;
-}
-
-interface EvadePlayerElement extends HTMLElement {
-  src?: string;
-  poster?: string;
-  locale?: string;
-  errorDescription?: string;
-  seasons?: SeasonOption[];
-  currentSeason?: string;
-  currentEpisode?: string;
-  currentVoiceover?: string;
-  savedState?: PlaybackState | null;
+  ref?: Ref<PlayerHandle>;
 }
 
 type ChangeEvent = CustomEvent<{ value: string }>;
 type SaveStateEvent = CustomEvent<{ state: PlaybackState }>;
+// Unlike the others, this event's detail *is* the payload rather than a wrapper.
+type PlaybackErrorEvent = CustomEvent<PlaybackErrorDetail>;
 
 /**
  * EvadePlayer, mounted as its `<evade-player>` Web Component.
@@ -81,48 +166,87 @@ export function VideoPlayerSurface({
   currentVoiceover,
   savedState,
   onSaveState,
+  onPlaybackError,
   onSeasonChange,
   onEpisodeChange,
   onVoiceoverChange,
   className,
+  ref,
 }: EvadePlayerProps) {
-  const ref = useRef<EvadePlayerElement>(null);
-  const [defined, setDefined] = useState(false);
+  const t = useDictionary();
 
-  // Load the player bundle once per document, then render the element only
-  // after its class is registered — assigning properties to a not-yet-upgraded
-  // element would be shadowed by the custom element's own class fields.
+  const elementRef = useRef<EvadePlayerElement>(null);
+  const [status, setStatus] = useState<LoadStatus>("loading");
+  /** Bumped by the retry button to re-run the loader. */
+  const [attempt, setAttempt] = useState(0);
+
+  // The element is rendered only once its class is registered — assigning
+  // properties to a not-yet-upgraded element would be shadowed by the custom
+  // element's own class fields.
   useEffect(() => {
     let cancelled = false;
 
-    if (!document.querySelector(`link[href="${STYLE_HREF}"]`)) {
-      const style = document.createElement("link");
-      style.rel = "stylesheet";
-      style.href = STYLE_HREF;
-      document.head.append(style);
-    }
-
-    if (!document.querySelector(`script[src="${SCRIPT_SRC}"]`)) {
-      const script = document.createElement("script");
-      script.src = SCRIPT_SRC;
-      script.async = true;
-      document.head.append(script);
-    }
-
-    customElements.whenDefined(TAG).then(() => {
-      if (!cancelled) setDefined(true);
-    });
+    loadPlayer().then(
+      () => {
+        if (!cancelled) setStatus("ready");
+      },
+      () => {
+        if (!cancelled) setStatus("failed");
+      },
+    );
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
+
+  const defined = status === "ready";
+
+  /**
+   * A recovery puts a URL on the element that the `src` prop does not know
+   * about. Both refs exist to keep the property sync below from handing the
+   * expired one back on the next unrelated re-render.
+   */
+  const recoveredSrc = useRef<string | null>(null);
+  const lastSrcProp = useRef<string | undefined>(undefined);
+
+  /**
+   * `reload` is the recovery path for an expired signature: it swaps the source
+   * without recreating the element, so the chosen voiceover, quality, volume
+   * and fullscreen all survive. Remounting instead — which is what a changed
+   * React `key` does — loses every one of them.
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      reload: (nextSrc, options) => {
+        recoveredSrc.current = nextSrc;
+        elementRef.current?.reload(nextSrc, options);
+      },
+    }),
+    // `elementRef` is stable, so the handle never needs rebuilding.
+    [],
+  );
+
+  // Resetting the status here rather than at the top of the effect above: a
+  // synchronous setState in an effect body just queues a second render pass.
+  const retry = () => {
+    setStatus("loading");
+    setAttempt((count) => count + 1);
+  };
 
   useEffect(() => {
-    const element = ref.current;
+    const element = elementRef.current;
     if (!element) return;
 
-    element.src = src;
+    // A changed prop is the caller deciding what plays, which supersedes
+    // whatever a recovery swapped in.
+    if (lastSrcProp.current !== src) {
+      lastSrcProp.current = src;
+      recoveredSrc.current = null;
+    }
+
+    element.src = recoveredSrc.current ?? src;
     element.poster = poster;
     element.locale = locale;
     element.errorDescription = errorDescription;
@@ -147,13 +271,17 @@ export function VideoPlayerSurface({
   ]);
 
   useEffect(() => {
-    const element = ref.current;
+    const element = elementRef.current;
     if (!element) return;
 
     const handlers: Array<[string, (event: Event) => void]> = [
       ["seasonchange", (event) => onSeasonChange?.((event as ChangeEvent).detail.value)],
       ["episodechange", (event) => onEpisodeChange?.((event as ChangeEvent).detail.value)],
       ["voiceoverchange", (event) => onVoiceoverChange?.((event as ChangeEvent).detail.value)],
+      [
+        "playbackerror",
+        (event) => onPlaybackError?.((event as PlaybackErrorEvent).detail),
+      ],
       [
         "savestate",
         (event) => {
@@ -172,7 +300,21 @@ export function VideoPlayerSurface({
     return () => {
       for (const [name, handler] of handlers) element.removeEventListener(name, handler);
     };
-  }, [defined, onSeasonChange, onEpisodeChange, onVoiceoverChange, onSaveState]);
+  }, [defined, onSeasonChange, onEpisodeChange, onVoiceoverChange, onSaveState, onPlaybackError]);
+
+  if (status === "failed") {
+    return (
+      <StateBlock
+        title={t.player.unavailable}
+        hint={t.player.unavailableHint}
+        action={
+          <Button variant="secondary" onClick={retry}>
+            {t.action.retry}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div
@@ -185,7 +327,7 @@ export function VideoPlayerSurface({
         className,
       )}
     >
-      {defined ? <evade-player ref={ref} /> : null}
+      {defined ? <evade-player ref={elementRef} /> : null}
     </div>
   );
 }

@@ -1,20 +1,26 @@
 import Link from "next/link";
 
-import { routes } from "@/lib/routes";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { localeRoutes, type Routes } from "@/lib/routes";
+import { getDictionary, type Dictionary } from "@/lib/i18n/dictionary";
+import type { AppLocale } from "@/lib/i18n/locale";
 
 export interface SiteFooterProps {
+  /** Resolved by the page from its `[locale]` segment. */
+  locale: AppLocale;
   siteName: string;
   supportEmail?: string | null;
 }
 
-const SECTIONS = [
-  { href: routes.movies, label: dictionary.nav.movies },
-  { href: routes.seriesList, label: dictionary.nav.series },
-  { href: routes.search(), label: dictionary.nav.search },
-] as const;
+const sections = (t: Dictionary, routes: Routes) =>
+  [
+    { href: routes.movies, label: t.nav.movies },
+    { href: routes.seriesList, label: t.nav.series },
+    { href: routes.search(), label: t.nav.search },
+  ] as const;
 
-export function SiteFooter({ siteName, supportEmail }: SiteFooterProps) {
+export function SiteFooter({ siteName, supportEmail, locale }: SiteFooterProps) {
+  const t = getDictionary(locale);
+  const routes = localeRoutes(locale);
   return (
     <footer className="page-gutter mt-auto border-t border-[var(--border-hairline)]">
       <div className="mx-auto w-full max-w-(--container-content)">
@@ -23,13 +29,13 @@ export function SiteFooter({ siteName, supportEmail }: SiteFooterProps) {
             <span className="font-display text-title-3 font-medium tracking-[0.06em] uppercase">
               {siteName}
             </span>
-            <span className="text-body-sm text-muted-foreground">{dictionary.brand.tagline}</span>
+            <span className="text-body-sm text-muted-foreground">{t.brand.tagline}</span>
           </div>
 
           <div className="flex flex-col gap-4">
             <span className="type-label text-[var(--text-disabled)]">Разделы</span>
             <nav className="flex flex-col gap-2.5 text-body-sm text-muted-foreground">
-              {SECTIONS.map((item) => (
+              {sections(t, routes).map((item) => (
                 <Link key={item.href} href={item.href} className="hover:text-foreground">
                   {item.label}
                 </Link>

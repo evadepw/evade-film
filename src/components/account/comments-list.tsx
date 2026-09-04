@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ContentRow } from "@/components/interactions/content-row";
 import { ListShell } from "@/components/account/list-shell";
 import { useMyComments } from "@/hooks/use-me";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { formatRelativeTime, joinMeta } from "@/lib/format";
 import { contentMeta } from "@/lib/format";
 
@@ -17,17 +17,19 @@ import { contentMeta } from "@/lib/format";
  * still explains a reply the viewer may remember writing.
  */
 export function CommentsList() {
+  const t = useDictionary();
+
   const list = useMyComments();
 
   return (
     <ListShell
-      title={dictionary.account.comments}
+      title={t.account.comments}
       total={list.total}
       isLoading={list.isLoading}
       isError={list.isError}
       isEmpty={list.items.length === 0}
-      emptyTitle={dictionary.account.noComments}
-      emptyHint={dictionary.account.noCommentsHint}
+      emptyTitle={t.account.noComments}
+      emptyHint={t.account.noCommentsHint}
       hasMore={list.hasMore}
       isLoadingMore={list.isLoadingMore}
       onLoadMore={() => void list.loadMore()}
@@ -47,13 +49,13 @@ export function CommentsList() {
         >
           {comment.isDeleted ? (
             <p className="text-body-sm text-[var(--text-disabled)] italic">
-              {dictionary.comments.deletedBody}
+              {t.comments.deletedBody}
             </p>
           ) : (
             <div className="flex flex-col gap-1.5">
               {comment.isSpoiler ? (
                 <Badge variant="outline" className="self-start">
-                  {dictionary.comments.spoiler}
+                  {t.comments.spoiler}
                 </Badge>
               ) : null}
               <Link

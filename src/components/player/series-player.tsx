@@ -6,8 +6,10 @@ import type { SeasonOption } from "evade-player";
 
 import { StateBlock } from "@/components/feedback/state-block";
 import { VideoPlayerSurface } from "@/components/player/video-player";
+import { useManifestRecovery } from "@/hooks/use-manifest-recovery";
 import { usePlaybackTracking } from "@/hooks/use-playback-tracking";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { catalogService } from "@/lib/api/services/catalog.service";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import type { Season, SeriesPlayback } from "@/lib/domain/models";
 
 export interface SeriesPlayerProps {
@@ -39,6 +41,8 @@ export function SeriesPlayer({
   initialSeason,
   initialEpisode,
 }: SeriesPlayerProps) {
+  const t = useDictionary();
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -72,7 +76,7 @@ export function SeriesPlayer({
     () =>
       playback.seasons
         .map((season) => ({
-          label: dictionary.title.seasonN(season.number),
+          label: t.title.seasonN(season.number),
           value: seasonValue(season.number),
           episodes: season.episodes
             .filter((episode) => Boolean(episode.manifestUrl))
@@ -80,7 +84,7 @@ export function SeriesPlayer({
               const value = episodeValue(season.number, episode.number);
               const title = episodeTitles.get(value);
               return {
-                label: title ? `${episode.number}. ${title}` : dictionary.title.episodeN(episode.number),
+                label: title ? `${episode.number}. ${title}` : t.title.episodeN(episode.number),
                 value,
                 src: episode.manifestUrl ?? undefined,
                 voiceovers: episode.voiceovers
@@ -94,7 +98,7 @@ export function SeriesPlayer({
             }),
         }))
         .filter((season) => season.episodes.length > 0),
-    [playback, episodeTitles],
+    [playback, episodeTitles, t.title],
   );
 
   const firstSeason = options[0];
@@ -147,6 +151,27 @@ export function SeriesPlayer({
     alsoCountViewFor: { type: "series", id: seriesId },
   });
 
+  /**
+   * One `playback-batch` signed the whole tree at once, so when a signature
+   * lapses every URL in `options` is stale — including the one on screen.
+   * Re-signing just the episode being watched is the cheap half of that:
+   * `getEpisodePlayback` exists for exactly this, and the rest of the tree is
+   * re-signed anyway the next time the page loads.
+   */
+  const refresh = useCallback(async () => {
+    const match = /^s(\d+)e(\d+)$/.exec(current);
+    if (!match) return null;
+
+    const source = await catalogService.getEpisodePlayback(seriesId, {
+      season: Number(match[1]),
+      episode: Number(match[2]),
+      ...(voiceover ? { voiceover_track: Number(voiceover) } : {}),
+    });
+    return source.manifestUrl;
+  }, [seriesId, current, voiceover]);
+
+  const { playerRef, onPlaybackError } = useManifestRecovery({ refresh });
+
   const src = useMemo(() => {
     for (const season of options) {
       for (const episode of season.episodes ?? []) {
@@ -159,7 +184,7 @@ export function SeriesPlayer({
   }, [options, current, voiceover]);
 
   if (!src) {
-    return <StateBlock title={dictionary.empty.playback} hint={dictionary.empty.playbackHint} />;
+    return <StateBlock title={t.empty.playback} hint={t.empty.playbackHint} />;
   }
 
   const currentSeason = current.split("e")[0];
@@ -167,6 +192,7 @@ export function SeriesPlayer({
   return (
     <VideoPlayerSurface
       key={`${seriesId}-${current}-${voiceover ?? "default"}`}
+      ref={playerRef}
       src={src}
       poster={poster ?? undefined}
       seasons={options}
@@ -178,7 +204,8 @@ export function SeriesPlayer({
       onSeasonChange={handleSeasonChange}
       onEpisodeChange={handleEpisodeChange}
       onVoiceoverChange={setVoiceover}
-      errorDescription={dictionary.player.linkExpired}
+      onPlaybackError={onPlaybackError}
+      errorDescription={t.player.linkExpired}
     />
   );
 }

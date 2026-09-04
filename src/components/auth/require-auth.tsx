@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SignInButton } from "@/components/auth/auth-dialog";
 import { StateBlock } from "@/components/feedback/state-block";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { useAuth } from "@/providers/auth-provider";
 
 /**
@@ -17,6 +17,8 @@ import { useAuth } from "@/providers/auth-provider";
  * dialog closes onto the page the viewer wanted.
  */
 export function RequireAuth({ children }: { children: ReactNode }) {
+  const t = useDictionary();
+
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -32,8 +34,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!isAuthenticated) {
     return (
       <StateBlock
-        title={dictionary.auth.needAccount}
-        hint={dictionary.auth.needAccountHint}
+        title={t.auth.needAccount}
+        hint={t.auth.needAccountHint}
         action={<SignInButton />}
       />
     );

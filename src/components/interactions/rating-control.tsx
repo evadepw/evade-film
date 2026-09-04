@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AuthDialog } from "@/components/auth/auth-dialog";
 import { useRating } from "@/hooks/use-interactions";
 import { ApiError } from "@/lib/api/errors";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { formatCount, formatRating } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ContentType, RatingSummary } from "@/lib/domain/models";
@@ -52,7 +52,9 @@ export function RatingControl({
   initial,
   className,
 }: RatingControlProps) {
-  const { summary, isLoading, canRate, isSaving, setRating } = useRating(type, id, initial);
+  const t = useDictionary();
+
+  const { summary, isLoading, canRate, setRating } = useRating(type, id, initial);
   const [hovered, setHovered] = useState<number | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -71,7 +73,7 @@ export function RatingControl({
     try {
       await setRating(score);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : dictionary.error.title);
+      toast.error(error instanceof ApiError ? error.message : t.error.title);
     }
   }
 
@@ -79,7 +81,7 @@ export function RatingControl({
     <div className={cn("flex flex-col gap-4", className)}>
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col">
-          <span className="type-label text-[var(--text-disabled)]">{dictionary.rating.title}</span>
+          <span className="type-label text-[var(--text-disabled)]">{t.rating.title}</span>
           <span className="font-display text-display-3 leading-none font-light">
             {formatRating(summary.average) ?? "—"}
           </span>
@@ -87,7 +89,7 @@ export function RatingControl({
 
         <div className="flex flex-col items-end gap-0.5 pb-1 text-caption text-muted-foreground">
           <span>
-            {summary.count > 0 ? dictionary.rating.votes(summary.count) : dictionary.rating.none}
+            {summary.count > 0 ? t.rating.votes(summary.count) : t.rating.none}
           </span>
           {/*
            * While the pointer is on the scale this line previews the score under
@@ -97,8 +99,8 @@ export function RatingControl({
           {active !== null ? (
             <span className="text-foreground">
               {hovered !== null && hovered !== myRating
-                ? `${dictionary.rating.rate}: ${hovered}`
-                : `${dictionary.rating.yours}: ${myRating}`}
+                ? `${t.rating.rate}: ${hovered}`
+                : `${t.rating.yours}: ${myRating}`}
             </span>
           ) : null}
         </div>
@@ -128,7 +130,7 @@ export function RatingControl({
          */}
         <div
           role="group"
-          aria-label={dictionary.rating.rate}
+          aria-label={t.rating.rate}
           onMouseLeave={() => setHovered(null)}
           className="grid grid-cols-11 gap-px overflow-hidden rounded-sm bg-[var(--border-hairline)]"
         >
@@ -139,16 +141,15 @@ export function RatingControl({
               <button
                 key={score}
                 type="button"
-                disabled={isSaving}
                 onMouseEnter={() => setHovered(score)}
                 onFocus={() => setHovered(score)}
                 onBlur={() => setHovered(null)}
                 onClick={() => void handleRate(score)}
-                aria-label={dictionary.rating.scoreOf(score)}
+                aria-label={t.rating.scoreOf(score)}
                 aria-pressed={myRating === score}
                 className={cn(
                   "flex h-9 items-center justify-center font-mono text-caption tabular-nums",
-                  "transition-colors duration-150 ease-evade outline-none disabled:opacity-40",
+                  "transition-colors duration-150 ease-evade outline-none",
                   "focus-visible:relative focus-visible:z-10 focus-visible:ring-1 focus-visible:ring-[var(--border-focus)]",
                   filled
                     ? "bg-silver-1 text-[var(--text-inverse)]"
@@ -169,7 +170,7 @@ export function RatingControl({
           onClick={() => void handleRate(myRating)}
           className="self-start text-caption text-muted-foreground underline-offset-4 transition-colors duration-150 ease-evade hover:text-foreground hover:underline"
         >
-          {dictionary.rating.clear}
+          {t.rating.clear}
         </button>
       ) : null}
 

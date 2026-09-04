@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/select";
 import { StateBlock } from "@/components/feedback/state-block";
 import { VideoPlayerSurface } from "@/components/player/video-player";
+import { useManifestRecovery } from "@/hooks/use-manifest-recovery";
 import { usePlaybackTracking } from "@/hooks/use-playback-tracking";
 import { catalogService } from "@/lib/api/services/catalog.service";
 import { queryKeys } from "@/lib/api/query-keys";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import type { AudioTrack, PlaybackSource } from "@/lib/domain/models";
 
 export interface MoviePlayerProps {
@@ -42,12 +43,32 @@ export function MoviePlayer({
   initialSource,
   audioTracks,
 }: MoviePlayerProps) {
+  const t = useDictionary();
+
   const [trackId, setTrackId] = useState<number | null>(null);
   const params = trackId ? { voiceover_track: trackId } : {};
 
   // Resume point and view counter. Switching the voiceover re-requests a
   // manifest but stays the same movie, so tracking is not keyed by track.
   const { savedState, onSaveState } = usePlaybackTracking("movie", movieId);
+
+  /**
+   * The rescue fetch for an expired signature. Deliberately a direct service
+   * call: putting it through the query above would change `data`, and the
+   * surface below is keyed by the manifest URL — the remount would throw away
+   * the position `reload()` is restoring.
+   */
+  const refresh = useCallback(
+    () =>
+      catalogService
+        // Built here rather than reusing `params`, which is a fresh object
+        // every render and would make this callback unstable.
+        .getMoviePlayback(movieId, trackId ? { voiceover_track: trackId } : {})
+        .then((source) => source.manifestUrl),
+    [movieId, trackId],
+  );
+
+  const { playerRef, onPlaybackError } = useManifestRecovery({ refresh });
 
   const { data, isError } = useQuery({
     queryKey: queryKeys.movies.playback(movieId, params),
@@ -60,7 +81,7 @@ export function MoviePlayer({
   });
 
   if (isError || (!data && !initialSource)) {
-    return <StateBlock title={dictionary.empty.playback} hint={dictionary.empty.playbackHint} />;
+    return <StateBlock title={t.empty.playback} hint={t.empty.playbackHint} />;
   }
 
   const source = data ?? initialSource;
@@ -70,25 +91,27 @@ export function MoviePlayer({
     <div className="flex flex-col gap-5">
       <VideoPlayerSurface
         key={source.manifestUrl}
+        ref={playerRef}
         src={source.manifestUrl}
         poster={poster ?? undefined}
         savedState={savedState}
         onSaveState={onSaveState}
-        errorDescription={dictionary.player.linkExpired}
+        onPlaybackError={onPlaybackError}
+        errorDescription={t.player.linkExpired}
       />
 
       {audioTracks.length > 1 ? (
         <div className="flex items-center gap-3">
-          <span className="type-label text-muted-foreground">{dictionary.player.voiceover}</span>
+          <span className="type-label text-muted-foreground">{t.player.voiceover}</span>
           <Select
             value={trackId === null ? "original" : String(trackId)}
             onValueChange={(value) => setTrackId(value === "original" ? null : Number(value))}
           >
-            <SelectTrigger className="w-[240px]" aria-label={dictionary.player.voiceover}>
-              <SelectValue placeholder={dictionary.title.noVoiceover} />
+            <SelectTrigger className="w-[240px]" aria-label={t.player.voiceover}>
+              <SelectValue placeholder={t.title.noVoiceover} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="original">{dictionary.title.noVoiceover}</SelectItem>
+              <SelectItem value="original">{t.title.noVoiceover}</SelectItem>
               {audioTracks.map((track) => (
                 <SelectItem key={track.id} value={String(track.id)}>
                   {track.label}

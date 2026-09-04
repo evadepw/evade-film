@@ -4,12 +4,15 @@ import { Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Poster } from "@/components/media/poster";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { joinMeta, formatDuration } from "@/lib/format";
-import { routes } from "@/lib/routes";
+import { localeRoutes } from "@/lib/routes";
 import type { TitleDetail } from "@/lib/domain/models";
 
 export interface HeroProps {
+  /** Resolved by the page from its `[locale]` segment. */
+  locale: AppLocale;
   title: TitleDetail;
   overline?: string;
 }
@@ -19,7 +22,10 @@ export interface HeroProps {
  * `--scrim-left` horizontally and a vertical fade into the page ink. Text over
  * media is never given a capsule or a card — only a scrim.
  */
-export function Hero({ title, overline = dictionary.home.heroOverline }: HeroProps) {
+export function Hero({ title, overline, locale }: HeroProps) {
+  const t = getDictionary(locale);
+  const routes = localeRoutes(locale);
+  const eyebrow = overline ?? t.home.heroOverline;
   const watchHref =
     title.kind === "movie" ? routes.watchMovie(title.id) : routes.watchSeries(title.id);
 
@@ -29,7 +35,7 @@ export function Hero({ title, overline = dictionary.home.heroOverline }: HeroPro
     title.kind === "movie"
       ? formatDuration(title.duration)
       : title.seasonCount
-        ? dictionary.title.seasons(title.seasonCount)
+        ? t.title.seasons(title.seasonCount)
         : null,
   ]);
 
@@ -55,7 +61,7 @@ export function Hero({ title, overline = dictionary.home.heroOverline }: HeroPro
       <div className="page-gutter absolute inset-x-0 bottom-12 md:bottom-16">
         <div className="mx-auto w-full max-w-(--container-content)">
           <div className="flex max-w-[520px] flex-col gap-5">
-            <span className="type-overline text-muted-foreground">{overline}</span>
+            <span className="type-overline text-muted-foreground">{eyebrow}</span>
 
             <h1 className="text-display-3 font-light md:text-display-1">{title.title}</h1>
 
@@ -74,11 +80,11 @@ export function Hero({ title, overline = dictionary.home.heroOverline }: HeroPro
               <Button asChild variant="chrome" size="lg">
                 <Link href={watchHref}>
                   <Play strokeWidth={1.5} />
-                  {dictionary.action.watch}
+                  {t.action.watch}
                 </Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <Link href={title.href}>{dictionary.action.details}</Link>
+                <Link href={title.href}>{t.action.details}</Link>
               </Button>
             </div>
           </div>

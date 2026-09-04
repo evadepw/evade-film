@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { StateBlock } from "@/components/feedback/state-block";
 import { ApiError } from "@/lib/api/errors";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 
 export default function Error({
   error,
@@ -14,6 +14,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useDictionary();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -24,11 +26,11 @@ export default function Error({
 
   return (
     <StateBlock
-      title={offline ? dictionary.error.offline : dictionary.error.title}
-      hint={offline ? dictionary.error.offlineHint : dictionary.error.hint}
+      title={offline ? t.error.offline : t.error.title}
+      hint={offline ? t.error.offlineHint : t.error.hint}
       action={
         <Button variant="secondary" onClick={reset}>
-          {dictionary.action.retry}
+          {t.action.retry}
         </Button>
       }
     />

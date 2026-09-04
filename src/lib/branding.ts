@@ -1,12 +1,12 @@
 import { cache } from "react";
 
 import { brandingService } from "@/lib/api/services/branding.service";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import type { Branding } from "@/lib/domain/models";
 
 const FALLBACK: Branding = {
-  name: dictionary.brand.name,
-  tagline: dictionary.brand.tagline,
+  name: getDictionary().brand.name,
+  tagline: getDictionary().brand.tagline,
   logo: null,
   favicon: null,
   siteUrl: null,

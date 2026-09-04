@@ -17,7 +17,8 @@ import { SignInPrompt } from "@/components/auth/sign-in-prompt";
 import { StateBlock } from "@/components/feedback/state-block";
 import { SectionHeader } from "@/components/layout/section-header";
 import { useComments } from "@/hooks/use-interactions";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { CommentOrdering } from "@/lib/api/types";
 import type { ContentType } from "@/lib/domain/models";
 
@@ -26,10 +27,10 @@ export interface CommentsSectionProps {
   id: number;
 }
 
-const ORDERINGS: Array<[CommentOrdering, string]> = [
-  ["new", dictionary.comments.sortNew],
-  ["top", dictionary.comments.sortTop],
-  ["old", dictionary.comments.sortOld],
+const orderings = (t: Dictionary): Array<[CommentOrdering, string]> => [
+  ["new", t.comments.sortNew],
+  ["top", t.comments.sortTop],
+  ["old", t.comments.sortOld],
 ];
 
 /**
@@ -41,6 +42,8 @@ const ORDERINGS: Array<[CommentOrdering, string]> = [
  * so the thread never jumps after it lands.
  */
 export function CommentsSection({ type, id }: CommentsSectionProps) {
+  const t = useDictionary();
+
   const [ordering, setOrdering] = useState<CommentOrdering>("new");
   const {
     comments,
@@ -80,16 +83,16 @@ export function CommentsSection({ type, id }: CommentsSectionProps) {
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
-        title={dictionary.comments.title}
-        note={total > 0 ? dictionary.comments.count(total) : undefined}
+        title={t.comments.title}
+        note={total > 0 ? t.comments.count(total) : undefined}
         actions={
           total > 1 ? (
             <Select value={ordering} onValueChange={(value) => setOrdering(value as CommentOrdering)}>
-              <SelectTrigger size="sm" className="w-[180px]" aria-label={dictionary.catalog.sort}>
+              <SelectTrigger size="sm" className="w-[180px]" aria-label={t.catalog.sort}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ORDERINGS.map(([value, label]) => (
+                {orderings(t).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>
@@ -108,9 +111,9 @@ export function CommentsSection({ type, id }: CommentsSectionProps) {
           }}
         />
       ) : isBanned ? (
-        <p className="text-body-sm text-muted-foreground">{dictionary.account.commentBanned}</p>
+        <p className="text-body-sm text-muted-foreground">{t.account.commentBanned}</p>
       ) : (
-        <SignInPrompt hint={dictionary.comments.signInHint} />
+        <SignInPrompt hint={t.comments.signInHint} />
       )}
 
       {isLoading ? (
@@ -121,8 +124,8 @@ export function CommentsSection({ type, id }: CommentsSectionProps) {
         </div>
       ) : comments.length === 0 ? (
         <StateBlock
-          title={dictionary.comments.empty}
-          hint={canPost ? dictionary.comments.emptyHint : undefined}
+          title={t.comments.empty}
+          hint={canPost ? t.comments.emptyHint : undefined}
           className="py-14"
         />
       ) : (
@@ -155,7 +158,7 @@ export function CommentsSection({ type, id }: CommentsSectionProps) {
               disabled={isLoadingMore}
               onClick={() => void loadMore()}
             >
-              {dictionary.action.more}
+              {t.action.more}
             </Button>
           ) : null}
         </div>

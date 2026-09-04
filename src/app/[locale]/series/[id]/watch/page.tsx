@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { PageSection } from "@/components/layout/page-section";
 import { catalogService } from "@/lib/api/services/catalog.service";
 import { orNotFound } from "@/lib/api/not-found";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { toLocale } from "@/lib/i18n/locale";
 import { joinMeta } from "@/lib/format";
 import type { SeriesPlayback } from "@/lib/domain/models";
 
@@ -18,13 +19,14 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/series/[id]/watch">): Promise<Metadata> {
-  const { id } = await params;
+}: PageProps<"/[locale]/series/[id]/watch">): Promise<Metadata> {
+  const { locale, id } = await params;
+  const t = getDictionary(toLocale(locale));
   try {
     const series = await catalogService.getSeries(id);
-    return { title: `${series.title} · ${dictionary.player.title}` };
+    return { title: `${series.title} · ${t.player.title}` };
   } catch {
-    return { title: dictionary.player.title };
+    return { title: t.player.title };
   }
 }
 
@@ -37,8 +39,9 @@ function toNumber(value: string | string[] | undefined): number | undefined {
 export default async function WatchSeriesPage({
   params,
   searchParams,
-}: PageProps<"/series/[id]/watch">) {
-  const { id } = await params;
+}: PageProps<"/[locale]/series/[id]/watch">) {
+  const { locale, id } = await params;
+  const t = getDictionary(toLocale(locale));
   const query = await searchParams;
 
   const series = await orNotFound(catalogService.getSeries(id));
@@ -67,7 +70,7 @@ export default async function WatchSeriesPage({
         <Button asChild variant="ghost" size="sm" className="mb-5 -ml-2">
           <Link href={series.href}>
             <ChevronLeft strokeWidth={1.5} />
-            {dictionary.action.back}
+            {t.action.back}
           </Link>
         </Button>
 
@@ -84,7 +87,7 @@ export default async function WatchSeriesPage({
             initialEpisode={episodeNumber}
           />
         ) : (
-          <StateBlock title={dictionary.empty.playback} hint={dictionary.empty.playbackHint} />
+          <StateBlock title={t.empty.playback} hint={t.empty.playbackHint} />
         )}
 
         <div className="mt-8 grid gap-14 lg:grid-cols-[1fr_360px]">
@@ -94,7 +97,7 @@ export default async function WatchSeriesPage({
               {joinMeta([
                 series.year,
                 series.country,
-                series.seasonCount ? dictionary.title.seasons(series.seasonCount) : null,
+                series.seasonCount ? t.title.seasons(series.seasonCount) : null,
               ])}
             </p>
             {series.description ? (
@@ -106,6 +109,7 @@ export default async function WatchSeriesPage({
 
           {currentSeason ? (
             <EpisodeStrip
+              locale={toLocale(locale)}
               seriesId={series.id}
               season={currentSeason}
               activeNumber={episodeNumber ?? currentSeason.episodes[0]?.number}

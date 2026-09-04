@@ -6,9 +6,9 @@ import { Play } from "lucide-react";
 import { Poster } from "@/components/media/poster";
 import { StateBlock } from "@/components/feedback/state-block";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary, useRoutes } from "@/lib/i18n/dictionary-context";
 import { formatDuration } from "@/lib/format";
-import { routes } from "@/lib/routes";
+
 import type { Season } from "@/lib/domain/models";
 
 export interface EpisodeListProps {
@@ -18,13 +18,16 @@ export interface EpisodeListProps {
 
 /** Season tabs over a vertical list of episodes — a still, a title, a duration. */
 export function EpisodeList({ seriesId, seasons }: EpisodeListProps) {
+  const t = useDictionary();
+  const routes = useRoutes();
+
   const withEpisodes = seasons.filter((season) => season.episodes.length > 0);
 
   if (withEpisodes.length === 0) {
     return (
       <StateBlock
-        title={dictionary.empty.episodes}
-        hint={dictionary.empty.episodesHint}
+        title={t.empty.episodes}
+        hint={t.empty.episodesHint}
         className="py-14"
       />
     );
@@ -36,7 +39,7 @@ export function EpisodeList({ seriesId, seasons }: EpisodeListProps) {
         <TabsList>
           {withEpisodes.map((season) => (
             <TabsTrigger key={season.id} value={String(season.number)}>
-              {dictionary.title.seasonN(season.number)}
+              {t.title.seasonN(season.number)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -47,10 +50,9 @@ export function EpisodeList({ seriesId, seasons }: EpisodeListProps) {
           {season.episodes.map((episode) => (
             <Link
               key={episode.id}
-              href={routes.watchSeries(seriesId, {
-                season: season.number,
-                episode: episode.number,
-              })}
+              // The row leads to the episode's page; the overlay on the still
+              // is what goes straight to the player.
+              href={routes.episode(seriesId, episode.id)}
               className="group/episode flex gap-5 rounded-lg"
             >
               <div className="relative w-[160px] shrink-0 md:w-[200px]">

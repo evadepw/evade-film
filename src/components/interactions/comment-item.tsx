@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CommentForm } from "@/components/interactions/comment-form";
 import { ApiError } from "@/lib/api/errors";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Comment } from "@/lib/domain/models";
@@ -50,6 +50,8 @@ export function CommentItem({
   threadId,
   className,
 }: CommentItemProps) {
+  const t = useDictionary();
+
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
@@ -65,7 +67,7 @@ export function CommentItem({
     try {
       await action();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : dictionary.error.title);
+      toast.error(error instanceof ApiError ? error.message : t.error.title);
     } finally {
       setPending(false);
     }
@@ -94,7 +96,7 @@ export function CommentItem({
           ) : null}
           {comment.isEdited && !comment.isDeleted ? (
             <span className="text-caption text-[var(--text-disabled)]">
-              {dictionary.comments.edited}
+              {t.comments.edited}
             </span>
           ) : null}
         </div>
@@ -103,7 +105,7 @@ export function CommentItem({
           <CommentForm
             initialBody={comment.body}
             initialSpoiler={comment.isSpoiler}
-            submitLabel={dictionary.comments.save}
+            submitLabel={t.comments.save}
             autoFocus
             pending={pending}
             onCancel={() => setEditing(false)}
@@ -116,7 +118,7 @@ export function CommentItem({
           />
         ) : comment.isDeleted ? (
           <p className="text-body-sm text-[var(--text-disabled)] italic">
-            {dictionary.comments.deletedBody}
+            {t.comments.deletedBody}
           </p>
         ) : comment.isSpoiler && !spoilerRevealed ? (
           <button
@@ -124,7 +126,7 @@ export function CommentItem({
             onClick={() => setSpoilerRevealed(true)}
             className="self-start rounded-sm border border-[var(--border-hairline)] px-3 py-2 text-body-sm text-muted-foreground transition-colors duration-150 ease-evade hover:border-silver-a20 hover:text-foreground"
           >
-            {dictionary.comments.spoilerHidden}
+            {t.comments.spoilerHidden}
           </button>
         ) : (
           <p className="max-w-(--max-prose) text-body-sm whitespace-pre-line text-foreground">
@@ -135,7 +137,7 @@ export function CommentItem({
         {!comment.isDeleted && !editing ? (
           <div className="-ml-2 flex flex-wrap items-center gap-0.5">
             <ReactionButton
-              label={dictionary.comments.like}
+              label={t.comments.like}
               count={comment.likes}
               active={comment.myReaction === 1}
               disabled={!canReact || pending}
@@ -143,7 +145,7 @@ export function CommentItem({
               onClick={() => void run(() => actions.onReact({ commentId: comment.id, value: 1 }))}
             />
             <ReactionButton
-              label={dictionary.comments.dislike}
+              label={t.comments.dislike}
               count={comment.dislikes}
               active={comment.myReaction === -1}
               disabled={!canReact || pending}
@@ -158,7 +160,7 @@ export function CommentItem({
                 size="sm"
                 onClick={() => setReplying((open) => !open)}
               >
-                {dictionary.comments.reply}
+                {t.comments.reply}
               </Button>
             ) : null}
 
@@ -167,7 +169,7 @@ export function CommentItem({
                 type="button"
                 variant="ghost"
                 size="sm"
-                aria-label={dictionary.comments.edit}
+                aria-label={t.comments.edit}
                 onClick={() => setEditing(true)}
               >
                 <Pencil strokeWidth={1.5} />
@@ -179,12 +181,12 @@ export function CommentItem({
                 type="button"
                 variant="ghost"
                 size="sm"
-                aria-label={dictionary.comments.remove}
+                aria-label={t.comments.remove}
                 disabled={pending}
                 onClick={() =>
                   void run(async () => {
                     await actions.onDelete(comment.id);
-                    toast.success(dictionary.comments.removed);
+                    toast.success(t.comments.removed);
                   })
                 }
               >
@@ -196,8 +198,8 @@ export function CommentItem({
 
         {replying ? (
           <CommentForm
-            placeholder={dictionary.comments.replyPlaceholder}
-            submitLabel={dictionary.comments.submit}
+            placeholder={t.comments.replyPlaceholder}
+            submitLabel={t.comments.submit}
             autoFocus
             pending={pending}
             onCancel={() => setReplying(false)}

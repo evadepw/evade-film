@@ -5,7 +5,34 @@
  * each mapper reinvents.
  */
 
-export const DEFAULT_LOCALE = "ru";
+/** The languages the interface ships in, and the order they are offered in. */
+export const LOCALES = ["ru", "en"] as const;
+
+export type AppLocale = (typeof LOCALES)[number];
+
+export const DEFAULT_LOCALE: AppLocale = "ru";
+
+/**
+ * What each language calls itself. Never translated: a list of languages is
+ * read by someone who does not yet have the interface in their own — «Русский»
+ * has to be recognisable to a reader looking at an English page.
+ *
+ * Adding a language is this map plus a dictionary; nothing in the UI enumerates
+ * them by hand.
+ */
+export const LOCALE_NAME: Record<AppLocale, string> = {
+  ru: "Русский",
+  en: "English",
+};
+
+export function isLocale(value: unknown): value is AppLocale {
+  return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
+}
+
+/** Narrows a route segment, falling back rather than throwing on a stray path. */
+export function toLocale(value: unknown): AppLocale {
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
 
 /** Order in which language tags are tried before giving up. */
 export const LOCALE_FALLBACKS = [DEFAULT_LOCALE, "en"] as const;

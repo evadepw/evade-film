@@ -1,5 +1,12 @@
-import { routes } from "@/lib/routes";
-import { DEFAULT_LOCALE, languageName, translate } from "@/lib/i18n/locale";
+import { localeRoutes } from "@/lib/routes";
+import { DEFAULT_LOCALE, toLocale, languageName, translate } from "@/lib/i18n/locale";
+
+/**
+ * Last-resort title for a record with neither a translation nor an original.
+ * Not translated: mappers run below the dictionary, and a title this broken is
+ * a data fault to be fixed in the admin rather than copy to be maintained.
+ */
+const UNTITLED = "—";
 import type {
   CommentDto,
   ContentStatsDto,
@@ -80,12 +87,16 @@ export function mapPage<TDto, TModel>(
   };
 }
 
-export function mapMovieSummary(dto: MovieListDto): TitleSummary {
+export function mapMovieSummary(
+  dto: MovieListDto,
+  locale: string = DEFAULT_LOCALE,
+): TitleSummary {
+  const routes = localeRoutes(toLocale(locale));
   return {
     ...mapStats(dto),
     id: dto.id,
     kind: "movie",
-    title: nullIfBlank(dto.title) ?? nullIfBlank(dto.original_title) ?? "Без названия",
+    title: nullIfBlank(dto.title) ?? nullIfBlank(dto.original_title) ?? UNTITLED,
     originalTitle: nullIfBlank(dto.original_title),
     poster: nullIfBlank(dto.poster),
     year: dto.year,
@@ -97,12 +108,16 @@ export function mapMovieSummary(dto: MovieListDto): TitleSummary {
   };
 }
 
-export function mapSeriesSummary(dto: SeriesListDto): TitleSummary {
+export function mapSeriesSummary(
+  dto: SeriesListDto,
+  locale: string = DEFAULT_LOCALE,
+): TitleSummary {
+  const routes = localeRoutes(toLocale(locale));
   return {
     ...mapStats(dto),
     id: dto.id,
     kind: "series",
-    title: nullIfBlank(dto.title) ?? nullIfBlank(dto.original_title) ?? "Без названия",
+    title: nullIfBlank(dto.title) ?? nullIfBlank(dto.original_title) ?? UNTITLED,
     originalTitle: nullIfBlank(dto.original_title),
     poster: nullIfBlank(dto.poster),
     year: dto.year,
@@ -122,6 +137,8 @@ function mapAudioTrack(dto: VoiceoverTrackDto, locale: string): AudioTrack {
       nullIfBlank(dto.label) ??
       nullIfBlank(dto.studio_name) ??
       languageName(dto.language, locale),
+    studio: nullIfBlank(dto.studio_name),
+    studioId: dto.studio,
   };
 }
 
@@ -135,6 +152,7 @@ function mapSubtitleTrack(dto: SubtitleTrackDto, locale: string): SubtitleTrack 
 }
 
 export function mapMovieDetail(dto: MovieDetailDto, locale: string = DEFAULT_LOCALE): TitleDetail {
+  const routes = localeRoutes(toLocale(locale));
   const title =
     translate(dto.translations, "title", locale) ??
     nullIfBlank(dto.original_title) ??
@@ -193,6 +211,7 @@ export function mapSeriesDetail(
   dto: SeriesDetailDto,
   locale: string = DEFAULT_LOCALE,
 ): TitleDetail {
+  const routes = localeRoutes(toLocale(locale));
   const title =
     translate(dto.translations, "title", locale) ??
     nullIfBlank(dto.original_title) ??
@@ -292,7 +311,11 @@ export function mapViewer(dto: UserDto): Viewer {
   };
 }
 
-export function mapPublicProfile(dto: PublicUserDto): PublicProfile {
+export function mapPublicProfile(
+  dto: PublicUserDto,
+  locale: string = DEFAULT_LOCALE,
+): PublicProfile {
+  const routes = localeRoutes(toLocale(locale));
   return {
     id: dto.id,
     username: dto.username,
@@ -309,7 +332,11 @@ export function mapPublicProfile(dto: PublicUserDto): PublicProfile {
  * watched at the series player with `?season=&episode=`. Resolving that here is
  * what lets a history row and a catalogue tile be rendered by the same card.
  */
-export function mapContentRef(dto: ContentRefDto): ContentRef {
+export function mapContentRef(
+  dto: ContentRefDto,
+  locale: string = DEFAULT_LOCALE,
+): ContentRef {
+  const routes = localeRoutes(toLocale(locale));
   const seriesId = dto.series_id;
   const fallbackTitle =
     dto.type === "episode" && dto.episode_number

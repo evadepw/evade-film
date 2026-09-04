@@ -65,6 +65,31 @@ const nextConfig: NextConfig = {
    */
   skipTrailingSlashRedirect: true,
 
+  /**
+   * The headers that cost nothing to be right about.
+   *
+   * No CSP here on purpose. A useful one has to name the vendored player, the
+   * media origin, the inline JSON-LD and Next's own inline bootstrap, and a CSP
+   * that is wrong is a blank page rather than a warning — it belongs in its own
+   * change, rolled out `-Report-Only` first. These four are unconditional.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Referrers stay useful same-origin and become bare origins outside,
+          // so a title someone was watching does not travel to third parties.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // The player is ours to frame; nobody else's page may frame it.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      },
+    ];
+  },
+
   async redirects() {
     return [
       // What `skipTrailingSlashRedirect` switched off, minus the API: a page

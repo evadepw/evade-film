@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { SearchCommand } from "@/components/catalog/search-dialog";
 import { UserMenu } from "@/components/auth/user-menu";
-import { routes } from "@/lib/routes";
-import { dictionary } from "@/lib/i18n/dictionary";
+
+import { useDictionary, useRoutes } from "@/lib/i18n/dictionary-context";
+import type { Dictionary } from "@/lib/i18n/dictionary";
+import type { Routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: routes.home, label: dictionary.nav.home },
-  { href: routes.movies, label: dictionary.nav.movies },
-  { href: routes.seriesList, label: dictionary.nav.series },
-] as const;
+const navItems = (t: Dictionary, routes: Routes) =>
+  [
+    { href: routes.home, label: t.nav.home },
+    { href: routes.movies, label: t.nav.movies },
+    { href: routes.seriesList, label: t.nav.series },
+  ] as const;
 
 export interface SiteHeaderProps {
   siteName: string;
@@ -26,6 +28,9 @@ export interface SiteHeaderProps {
  * the only fixed element on web besides the player transport.
  */
 export function SiteHeader({ siteName }: SiteHeaderProps) {
+  const t = useDictionary();
+  const routes = useRoutes();
+
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
 
@@ -58,33 +63,41 @@ export function SiteHeader({ siteName }: SiteHeaderProps) {
     >
       <Link
         href={routes.home}
-        className="font-display text-title-3 font-medium tracking-[0.06em] whitespace-nowrap uppercase"
+        className="shrink-0 font-display text-title-3 font-medium tracking-[0.06em] whitespace-nowrap uppercase"
       >
         {siteName}
       </Link>
 
-      <nav className="flex items-center gap-5 md:gap-7">
-        {NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "text-body-sm font-medium transition-colors duration-150 ease-evade",
-              isActive(item.href) ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
+      {/*
+        The links give way before the controls do: on a narrow screen the nav
+        becomes a scrolling strip rather than pushing search and the account
+        circle off the edge of the bar.
+      */}
+      <nav className="no-scrollbar flex min-w-0 items-center gap-5 overflow-x-auto md:gap-7">
+        {navItems(t, routes).map((item) => {
+          const active = isActive(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              // Colour alone carried the active state, which reaches neither a
+              // screen reader nor anyone who cannot tell these two greys apart.
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "shrink-0 text-body-sm font-medium transition-colors duration-150 ease-evade",
+                active ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <span className="flex-1" />
 
-      <Button asChild variant="ghost" size="icon" aria-label={dictionary.nav.search}>
-        <Link href={routes.search()}>
-          <Search strokeWidth={1.5} />
-        </Link>
-      </Button>
+      <SearchCommand />
 
       <UserMenu />
     </header>

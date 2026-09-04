@@ -4,19 +4,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageSection } from "@/components/layout/page-section";
 import { authService } from "@/lib/api/services/auth.service";
 import { orNotFound } from "@/lib/api/not-found";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { toLocale } from "@/lib/i18n/locale";
 
 export const revalidate = 300;
 
 export async function generateMetadata({
   params,
-}: PageProps<"/users/[username]">): Promise<Metadata> {
-  const { username } = await params;
+}: PageProps<"/[locale]/users/[username]">): Promise<Metadata> {
+  const { locale,  username } = await params;
+  const t = getDictionary(toLocale(locale));
   try {
     const profile = await authService.publicProfile(username);
     return { title: profile.displayName };
   } catch {
-    return { title: dictionary.profile.title };
+    return { title: t.profile.title };
   }
 }
 
@@ -27,8 +29,9 @@ export async function generateMetadata({
  * server like the rest of the catalogue: it is the same for every visitor.
  * A comment author's name links here.
  */
-export default async function PublicProfilePage({ params }: PageProps<"/users/[username]">) {
-  const { username } = await params;
+export default async function PublicProfilePage({ params }: PageProps<"/[locale]/users/[username]">) {
+  const { locale,  username } = await params;
+  const t = getDictionary(toLocale(locale));
   const profile = await orNotFound(authService.publicProfile(username));
 
   return (
@@ -43,7 +46,7 @@ export default async function PublicProfilePage({ params }: PageProps<"/users/[u
 
         <div className="flex flex-col gap-2">
           <span className="type-overline text-[var(--text-disabled)]">
-            {dictionary.profile.title}
+            {t.profile.title}
           </span>
           <h1 className="text-display-3 font-light">{profile.displayName}</h1>
           <span className="font-mono text-body-sm text-muted-foreground">@{profile.username}</span>

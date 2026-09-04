@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StateBlock } from "@/components/feedback/state-block";
 import { SectionHeader } from "@/components/layout/section-header";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 
 export interface ListShellProps {
   title: string;
@@ -46,6 +46,8 @@ export function ListShell({
   filters,
   children,
 }: ListShellProps) {
+  const t = useDictionary();
+
   return (
     <section className="flex flex-col gap-6">
       <SectionHeader
@@ -55,7 +57,7 @@ export function ListShell({
       />
 
       {isError ? (
-        <StateBlock title={dictionary.error.offline} hint={dictionary.error.offlineHint} />
+        <StateBlock title={t.error.offline} hint={t.error.offlineHint} />
       ) : isLoading ? (
         <div className="flex flex-col gap-4">
           {[0, 1, 2, 3].map((row) => (
@@ -75,7 +77,7 @@ export function ListShell({
               disabled={isLoadingMore}
               onClick={onLoadMore}
             >
-              {dictionary.action.more}
+              {t.action.more}
             </Button>
           ) : null}
         </>

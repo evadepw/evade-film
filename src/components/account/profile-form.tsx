@@ -15,9 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PasswordInput } from "@/components/auth/password-input";
 import { SectionHeader } from "@/components/layout/section-header";
 import { ApiError } from "@/lib/api/errors";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { useDictionary } from "@/lib/i18n/dictionary-context";
 import { formatDate } from "@/lib/format";
 import { useAuth } from "@/providers/auth-provider";
 import type { PreferredLanguage } from "@/lib/api/types";
@@ -30,6 +31,8 @@ import type { PreferredLanguage } from "@/lib/api/types";
  * viewer can never use is an invitation to try.
  */
 export function ProfileForm() {
+  const t = useDictionary();
+
   const { viewer, updateProfile, changePassword } = useAuth();
   const fieldId = useId();
 
@@ -63,13 +66,13 @@ export function ProfileForm() {
         birth_date: birthDate || null,
         preferred_language: language,
       });
-      toast.success(dictionary.account.saved);
+      toast.success(t.account.saved);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrors(error.fieldErrors);
         if (!Object.keys(error.fieldErrors).length) toast.error(error.message);
       } else {
-        toast.error(dictionary.error.title);
+        toast.error(t.error.title);
       }
     } finally {
       setPending(false);
@@ -86,13 +89,13 @@ export function ProfileForm() {
       await changePassword({ old_password: oldPassword, new_password: newPassword });
       setOldPassword("");
       setNewPassword("");
-      toast.success(dictionary.account.passwordChanged);
+      toast.success(t.account.passwordChanged);
     } catch (error) {
       if (error instanceof ApiError) {
         setPasswordErrors(error.fieldErrors);
         if (!Object.keys(error.fieldErrors).length) toast.error(error.message);
       } else {
-        toast.error(dictionary.error.title);
+        toast.error(t.error.title);
       }
     } finally {
       setPasswordPending(false);
@@ -105,12 +108,12 @@ export function ProfileForm() {
     <div className="flex flex-col gap-14">
       <section className="flex flex-col gap-8">
         <SectionHeader
-          title={dictionary.account.profile}
-          note={joined ? dictionary.account.joined(joined) : undefined}
+          title={t.account.profile}
+          note={joined ? t.account.joined(joined) : undefined}
           actions={
             <div className="flex gap-2">
               {viewer.isStaff ? (
-                <Badge variant="outline">{dictionary.account.staff}</Badge>
+                <Badge variant="outline">{t.account.staff}</Badge>
               ) : null}
             </div>
           }
@@ -118,7 +121,7 @@ export function ProfileForm() {
 
         {viewer.isCommentBanned ? (
           <p className="text-body-sm text-muted-foreground">
-            {dictionary.account.commentBanned} {dictionary.account.commentBannedHint}
+            {t.account.commentBanned} {t.account.commentBannedHint}
           </p>
         ) : null}
 
@@ -127,12 +130,12 @@ export function ProfileForm() {
           onSubmit={(event) => void handleSave(event)}
         >
           <div className="flex flex-col gap-2 md:col-span-2">
-            <Label>{dictionary.auth.email}</Label>
+            <Label>{t.auth.email}</Label>
             <p className="text-body text-muted-foreground">{viewer.email}</p>
           </div>
 
           <Field
-            label={dictionary.auth.username}
+            label={t.auth.username}
             htmlFor={`${fieldId}-username`}
             error={errors.username}
             className="md:col-span-2"
@@ -146,7 +149,7 @@ export function ProfileForm() {
           </Field>
 
           <Field
-            label={dictionary.account.firstName}
+            label={t.account.firstName}
             htmlFor={`${fieldId}-first`}
             error={errors.first_name}
           >
@@ -158,7 +161,7 @@ export function ProfileForm() {
           </Field>
 
           <Field
-            label={dictionary.account.lastName}
+            label={t.account.lastName}
             htmlFor={`${fieldId}-last`}
             error={errors.last_name}
           >
@@ -170,7 +173,7 @@ export function ProfileForm() {
           </Field>
 
           <Field
-            label={dictionary.account.bio}
+            label={t.account.bio}
             htmlFor={`${fieldId}-bio`}
             error={errors.bio}
             className="md:col-span-2"
@@ -183,7 +186,7 @@ export function ProfileForm() {
           </Field>
 
           <Field
-            label={dictionary.account.birthDate}
+            label={t.account.birthDate}
             htmlFor={`${fieldId}-birth`}
             error={errors.birth_date}
           >
@@ -196,44 +199,43 @@ export function ProfileForm() {
           </Field>
 
           <div className="flex flex-col gap-2">
-            <Label>{dictionary.account.language}</Label>
+            <Label>{t.account.language}</Label>
             <Select
               value={language}
               onValueChange={(value) => setLanguage(value as PreferredLanguage)}
             >
-              <SelectTrigger className="w-full" aria-label={dictionary.account.language}>
+              <SelectTrigger className="w-full" aria-label={t.account.language}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ru">{dictionary.account.languageRu}</SelectItem>
-                <SelectItem value="en">{dictionary.account.languageEn}</SelectItem>
+                <SelectItem value="ru">{t.account.languageRu}</SelectItem>
+                <SelectItem value="en">{t.account.languageEn}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="md:col-span-2">
             <Button type="submit" disabled={pending}>
-              {dictionary.account.save}
+              {t.account.save}
             </Button>
           </div>
         </form>
       </section>
 
       <section className="flex flex-col gap-8">
-        <SectionHeader title={dictionary.account.changePassword} />
+        <SectionHeader title={t.account.changePassword} />
 
         <form
           className="grid max-w-2xl gap-6 md:grid-cols-2"
           onSubmit={(event) => void handlePasswordChange(event)}
         >
           <Field
-            label={dictionary.account.currentPassword}
+            label={t.account.currentPassword}
             htmlFor={`${fieldId}-old-password`}
             error={passwordErrors.old_password}
           >
-            <Input
+            <PasswordInput
               id={`${fieldId}-old-password`}
-              type="password"
               autoComplete="current-password"
               required
               value={oldPassword}
@@ -242,13 +244,12 @@ export function ProfileForm() {
           </Field>
 
           <Field
-            label={dictionary.account.newPassword}
+            label={t.account.newPassword}
             htmlFor={`${fieldId}-new-password`}
             error={passwordErrors.new_password}
           >
-            <Input
+            <PasswordInput
               id={`${fieldId}-new-password`}
-              type="password"
               autoComplete="new-password"
               required
               value={newPassword}
@@ -262,7 +263,7 @@ export function ProfileForm() {
               variant="secondary"
               disabled={passwordPending || !oldPassword || !newPassword}
             >
-              {dictionary.account.changePassword}
+              {t.account.changePassword}
             </Button>
           </div>
         </form>

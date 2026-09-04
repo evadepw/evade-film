@@ -5,18 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EpisodeList } from "@/components/catalog/episode-list";
 import { TitleRail } from "@/components/catalog/title-rail";
+import { SectionBoundary } from "@/components/feedback/section-boundary";
 import { CommentsSection } from "@/components/interactions/comments-section";
 import { RatingControl } from "@/components/interactions/rating-control";
 import { WatchlistButton } from "@/components/interactions/watchlist-button";
 import { Poster } from "@/components/media/poster";
 import { PageSection } from "@/components/layout/page-section";
 import { SectionHeader } from "@/components/layout/section-header";
-import { dictionary } from "@/lib/i18n/dictionary";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { formatDuration, joinMeta } from "@/lib/format";
-import { routes } from "@/lib/routes";
+import { localeRoutes } from "@/lib/routes";
 import type { TitleDetail, TitleSummary } from "@/lib/domain/models";
 
 export interface TitleDetailViewProps {
+  /** Resolved by the page from its `[locale]` segment. */
+  locale: AppLocale;
   title: TitleDetail;
   /** Same-kind titles for the rail at the bottom. Already excludes this one. */
   similar?: TitleSummary[];
@@ -31,7 +35,9 @@ export interface TitleDetailViewProps {
  * short page behind a click and left the other half looking empty; a single
  * column of sections reads as minimal rather than unfinished.
  */
-export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
+export function TitleDetailView({ title, similar = [], locale }: TitleDetailViewProps) {
+  const t = getDictionary(locale);
+  const routes = localeRoutes(locale);
   const watchHref =
     title.kind === "movie" ? routes.watchMovie(title.id) : routes.watchSeries(title.id);
 
@@ -41,31 +47,38 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
     title.kind === "movie"
       ? formatDuration(title.duration)
       : title.seasonCount
-        ? dictionary.title.seasons(title.seasonCount)
+        ? t.title.seasons(title.seasonCount)
         : null,
   ]);
 
   const episodeCount = title.seasons.reduce((sum, season) => sum + season.episodes.length, 0);
 
+  // Distinct, in the order the API listed them — several tracks share a studio.
+  const studios = [...new Set(title.audioTracks.map((track) => track.studio).filter(Boolean))];
+
   const facts: Array<[string, string]> = [
-    title.originalTitle ? [dictionary.title.original, title.originalTitle] : null,
-    title.year ? [dictionary.title.year, String(title.year)] : null,
-    title.country ? [dictionary.title.country, title.country] : null,
+    title.originalTitle ? [t.title.original, title.originalTitle] : null,
+    title.year ? [t.title.year, String(title.year)] : null,
+    title.country ? [t.title.country, title.country] : null,
     title.kind === "movie" && title.duration
-      ? [dictionary.title.duration, formatDuration(title.duration) ?? ""]
+      ? [t.title.duration, formatDuration(title.duration) ?? ""]
       : null,
     title.kind === "series" && episodeCount
-      ? [dictionary.title.episodes, dictionary.title.episodesCount(episodeCount)]
+      ? [t.title.episodes, t.title.episodesCount(episodeCount)]
       : null,
-    title.ageRating ? [dictionary.title.ageRating, title.ageRating] : null,
+    title.ageRating ? [t.title.ageRating, title.ageRating] : null,
     title.audioTracks.length
-      ? [dictionary.title.voiceover, title.audioTracks.map((t) => t.label).join(" · ")]
+      ? [t.title.voiceover, title.audioTracks.map((t) => t.label).join(" · ")]
       : null,
+    // Studios on a line of their own. Inside the track label they are a
+    // parenthetical — «Русский (LostFilm)» — and which studios dubbed a title
+    // is a thing people choose by.
+    studios.length ? [t.title.studios, studios.join(" · ")] : null,
     [
-      dictionary.title.subtitles,
+      t.title.subtitles,
       title.subtitleTracks.length
         ? title.subtitleTracks.map((t) => t.label).join(" · ")
-        : dictionary.title.noSubtitles,
+        : t.title.noSubtitles,
     ],
   ].filter((entry): entry is [string, string] => entry !== null);
 
@@ -106,13 +119,13 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
                 <Button asChild variant="chrome" size="lg">
                   <Link href={watchHref}>
                     <Play strokeWidth={1.5} />
-                    {dictionary.action.watch}
+                    {t.action.watch}
                   </Link>
                 </Button>
                 {title.trailerUrl ? (
                   <Button asChild variant="outline" size="lg">
                     <a href={title.trailerUrl} target="_blank" rel="noreferrer">
-                      {dictionary.action.trailer}
+                      {t.action.trailer}
                     </a>
                   </Button>
                 ) : null}
@@ -120,7 +133,9 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
                  * Client island: the shelf row belongs to the viewer, and the
                  * page around it is rendered anonymously on the server.
                  */}
-                <WatchlistButton type={title.kind} id={title.id} size="lg" />
+                <SectionBoundary>
+                  <WatchlistButton type={title.kind} id={title.id} size="lg" />
+                </SectionBoundary>
               </div>
             </div>
           </div>
@@ -128,7 +143,7 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
       </div>
 
       <PageSection>
-        <SectionHeader title={dictionary.title.overview} className="mb-8" />
+        <SectionHeader title={t.title.overview} className="mb-8" />
 
         <div className="flex flex-col gap-10">
           {/*
@@ -138,21 +153,23 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
            */}
           <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:gap-14">
             <p className="max-w-(--max-prose) text-title-3 text-muted-foreground">
-              {title.description ?? title.shortDescription ?? "Описание пока не добавлено."}
+              {title.description ?? title.shortDescription ?? t.title.noDescription}
             </p>
 
-            <RatingControl
-              type={title.kind}
-              id={title.id}
-              // The detail response carries the average already; the histogram
-              // and «ваша оценка» arrive with the client request behind it.
-              initial={{
-                average: title.rating,
-                count: title.ratingCount,
-                distribution: Array.from({ length: 11 }, () => 0),
-                myRating: null,
-              }}
-            />
+            <SectionBoundary>
+              <RatingControl
+                type={title.kind}
+                id={title.id}
+                // The detail response carries the average already; the histogram
+                // and «ваша оценка» arrive with the client request behind it.
+                initial={{
+                  average: title.rating,
+                  count: title.ratingCount,
+                  distribution: Array.from({ length: 11 }, () => 0),
+                  myRating: null,
+                }}
+              />
+            </SectionBoundary>
           </div>
 
           {/*
@@ -174,8 +191,8 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
       {title.kind === "series" && title.seasons.length > 0 ? (
         <PageSection>
           <SectionHeader
-            title={dictionary.title.episodes}
-            note={episodeCount ? dictionary.title.episodesCount(episodeCount) : undefined}
+            title={t.title.episodes}
+            note={episodeCount ? t.title.episodesCount(episodeCount) : undefined}
             className="mb-8"
           />
           <EpisodeList seriesId={title.id} seasons={title.seasons} />
@@ -183,14 +200,16 @@ export function TitleDetailView({ title, similar = [] }: TitleDetailViewProps) {
       ) : null}
 
       <PageSection>
-        <CommentsSection type={title.kind} id={title.id} />
+        <SectionBoundary>
+          <CommentsSection type={title.kind} id={title.id} />
+        </SectionBoundary>
       </PageSection>
 
       {similar.length > 0 ? (
         <PageSection>
           <TitleRail
-            overline={dictionary.home.similar}
-            title={title.kind === "movie" ? dictionary.home.movies : dictionary.home.series}
+            overline={t.home.similar}
+            title={title.kind === "movie" ? t.home.movies : t.home.series}
             items={similar}
           />
         </PageSection>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -15,6 +15,7 @@ import {
   type ShelvableType,
 } from "@/lib/api/services/interactions.service";
 import { queryKeys } from "@/lib/api/query-keys";
+import { applyVote } from "@/lib/ratings";
 import { useAuth } from "@/providers/auth-provider";
 import type { CommentOrdering, CommentUpdateDto, WatchlistWriteDto } from "@/lib/api/types";
 import type {
@@ -56,14 +57,49 @@ export function useRating(type: ContentType, id: number, initial?: RatingSummary
     placeholderData: initial,
   });
 
+  /**
+   * Votes are numbered so that a slow response cannot overwrite a faster later
+   * one — clicking 6 then 8 must settle on 8 whichever reply lands last.
+   */
+  const vote = useRef(0);
+
+  /** Draw the vote immediately; hand back what it replaced, to undo with. */
+  const predict = async (value: number | null) => {
+    await queryClient.cancelQueries({ queryKey });
+    const previous = queryClient.getQueryData<RatingSummary>(queryKey);
+    // Undefined while the placeholder is showing: nothing cached to amend yet,
+    // so that first vote simply waits for the server.
+    if (previous) queryClient.setQueryData(queryKey, applyVote(previous, value));
+    return { previous, seq: (vote.current += 1) };
+  };
+
+  type VoteContext = { previous: RatingSummary | undefined; seq: number };
+
+  // Generic in the variables so neither handler pins down what its mutation
+  // takes — `clear` is called with no argument, `rate` with a score.
+  const settle = <V>(summary: RatingSummary, _input: V, context?: VoteContext) => {
+    if (context && context.seq !== vote.current) return;
+    queryClient.setQueryData(queryKey, summary);
+  };
+
+  const undo = <V>(_error: unknown, _input: V, context?: VoteContext) => {
+    if (context && context.seq !== vote.current) return;
+    if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    void queryClient.invalidateQueries({ queryKey });
+  };
+
   const rate = useMutation({
     mutationFn: (value: number) => interactionsService.rate(type, id, value),
-    onSuccess: (summary) => queryClient.setQueryData(queryKey, summary),
+    onMutate: (value) => predict(value),
+    onSuccess: settle,
+    onError: undo,
   });
 
   const clear = useMutation({
     mutationFn: () => interactionsService.clearRating(type, id),
-    onSuccess: (summary) => queryClient.setQueryData(queryKey, summary),
+    onMutate: () => predict(null),
+    onSuccess: settle,
+    onError: undo,
   });
 
   return {
@@ -83,6 +119,19 @@ export function useRating(type: ContentType, id: number, initial?: RatingSummary
 }
 
 /* --- Watchlist ------------------------------------------------------------ */
+
+/**
+ * The two fields the shelf control draws, split out from the stored row.
+ *
+ * It is deliberately *not* a `WatchlistEntry`: shelving a title for the first
+ * time has to render before the server has assigned an id or echoed back the
+ * content it points at, and inventing those to satisfy the wider type would put
+ * a row in the cache that claims to be something it is not.
+ */
+export interface ShelfState {
+  status: WatchlistStatus;
+  isFavorite: boolean;
+}
 
 export function useWatchlist(type: ShelvableType, id: number) {
   const queryClient = useQueryClient();
@@ -114,21 +163,36 @@ export function useWatchlist(type: ShelvableType, id: number) {
     },
   });
 
-  const entry = query.data ?? null;
+  const stored = query.data ?? null;
+
+  /**
+   * What the control draws now. While a write is in flight that is the write's
+   * own outcome rather than the row it replaces, so the star fills and the
+   * status label changes under the finger instead of a round trip later.
+   *
+   * No rollback to write: a failed mutation stops being pending, `stored`
+   * reappears by itself, and the caller has already raised the toast. The
+   * backend defaults a new row to «planned», which is the default mirrored here.
+   */
+  const shelf: ShelfState | null = remove.isPending
+    ? null
+    : save.isPending
+      ? {
+          status: save.variables.status ?? stored?.status ?? "planned",
+          isFavorite: save.variables.is_favorite ?? stored?.isFavorite ?? false,
+        }
+      : stored;
 
   return {
-    entry,
+    shelf,
     isLoading: isAuthenticated && query.isLoading,
     isSaving: save.isPending || remove.isPending,
-    isShelved: Boolean(entry),
+    isShelved: Boolean(shelf),
     /** Status and «избранное» share one row, so both go through the same upsert. */
-    setStatus: useCallback(
-      (status: WatchlistStatus) => save.mutateAsync({ status }),
-      [save],
-    ),
+    setStatus: useCallback((status: WatchlistStatus) => save.mutateAsync({ status }), [save]),
     toggleFavorite: useCallback(
-      () => save.mutateAsync({ is_favorite: !entry?.isFavorite }),
-      [save, entry?.isFavorite],
+      () => save.mutateAsync({ is_favorite: !shelf?.isFavorite }),
+      [save, shelf?.isFavorite],
     ),
     add: useCallback(() => save.mutateAsync({}), [save]),
     remove: useCallback(() => remove.mutateAsync(), [remove]),
@@ -233,6 +297,33 @@ export function useComments(type: ContentType, id: number, ordering: CommentOrde
   const react = useMutation({
     mutationFn: (input: { commentId: number; value: 1 | -1 }) =>
       interactionsService.reactToComment(input.commentId, input.value),
+    // A vote on a comment is a toggle the client can resolve on its own, and
+    // the counter sits directly under the cursor — the one place where a
+    // round trip's delay is unmissable.
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<CommentPages>(queryKey);
+
+      queryClient.setQueryData<CommentPages>(queryKey, (pages) =>
+        patchComment(pages, input.commentId, (comment) => {
+          // Pressing the reaction already held withdraws it, as the API does.
+          const next = comment.myReaction === input.value ? null : input.value;
+          const shift = (side: 1 | -1) => (next === side ? 1 : 0) - (comment.myReaction === side ? 1 : 0);
+
+          return {
+            ...comment,
+            likes: comment.likes + shift(1),
+            dislikes: comment.dislikes + shift(-1),
+            myReaction: next,
+          };
+        }),
+      );
+
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
     onSuccess: (result, input) => {
       queryClient.setQueryData<CommentPages>(queryKey, (pages) =>
         patchComment(pages, input.commentId, (comment) => ({

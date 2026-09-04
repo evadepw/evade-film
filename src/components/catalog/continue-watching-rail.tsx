@@ -4,8 +4,8 @@ import { PosterCard } from "@/components/media/poster-card";
 import { Rail } from "@/components/catalog/rail";
 import { useContinueWatching } from "@/hooks/use-me";
 import { contentMeta, formatRemaining, joinMeta } from "@/lib/format";
-import { dictionary } from "@/lib/i18n/dictionary";
-import { routes } from "@/lib/routes";
+import { useDictionary, useRoutes } from "@/lib/i18n/dictionary-context";
+
 
 /**
  * «Продолжить просмотр».
@@ -16,6 +16,9 @@ import { routes } from "@/lib/routes";
  * already drops entries under 1 %, so a misclick never lands here.
  */
 export function ContinueWatchingRail() {
+  const t = useDictionary();
+  const routes = useRoutes();
+
   const { data } = useContinueWatching();
 
   // No skeleton on purpose: a placeholder for a viewer who turns out to have no
@@ -25,8 +28,8 @@ export function ContinueWatchingRail() {
 
   return (
     <Rail
-      overline={dictionary.home.continueWatchingOverline}
-      title={dictionary.home.continueWatching}
+      overline={t.home.continueWatchingOverline}
+      title={t.home.continueWatching}
       actionHref={routes.account.history}
     >
       {entries.map((entry, index) => (

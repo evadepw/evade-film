@@ -1,0 +1,21 @@
+# `docker compose up --build` — the build reads `.env.production` from the build
+# context (see Dockerfile), so edit that file and rebuild rather than overriding
+# values here.
+services:
+  web:
+    build:
+      context: .
+    image: evade-film:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # The same file again, for the server side only: `API_URL` and the timeout
+    # are read per request. `NEXT_PUBLIC_*` values are already frozen into the
+    # bundle at build time and cannot be changed from here.
+    env_file:
+      - .env.production
+    # Lets `host.docker.internal` resolve on Linux too, where — unlike Docker
+    # Desktop — it is not provided by default. Needed when the catalog API runs
+    # on the host rather than in a container.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

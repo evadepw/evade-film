@@ -49,6 +49,9 @@ export const ru = {
 
   home: {
     heroOverline: "Смотрите иначе",
+    heroPrev: "Предыдущий тайтл",
+    heroNext: "Следующий тайтл",
+    heroSlide: (n: number, total: number) => `Тайтл ${n} из ${total}`,
     continueWatching: "Продолжить просмотр",
     continueWatchingOverline: "Вы остановились",
     newMovies: "Новое в кино",

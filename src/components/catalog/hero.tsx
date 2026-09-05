@@ -15,14 +15,25 @@ export interface HeroProps {
   locale: AppLocale;
   title: TitleDetail;
   overline?: string;
+  /**
+   * Preload the artwork. True for the first slide of the deck only — five
+   * full-bleed backdrops at high fetch priority would race the one the
+   * visitor is actually looking at.
+   */
+  priority?: boolean;
 }
 
 /**
- * The single full-bleed image on the page: a 21:9 still protected by
- * `--scrim-left` horizontally and a vertical fade into the page ink. Text over
- * media is never given a capsule or a card — only a scrim.
+ * One full-bleed still: 21:9 artwork protected by `--scrim-left` horizontally
+ * and a vertical fade into the page ink. Text over media is never given a
+ * capsule or a card — only a scrim.
+ *
+ * The height is the page's opening statement, so it is generous and grows with
+ * the viewport, capped so a tall monitor does not turn it into a wall.
+ * `HeroCarousel` stacks several of these; every slide is this component, which
+ * is why the height lives here and not in the deck.
  */
-export function Hero({ title, overline, locale }: HeroProps) {
+export function Hero({ title, overline, locale, priority = true }: HeroProps) {
   const t = getDictionary(locale);
   const routes = localeRoutes(locale);
   const eyebrow = overline ?? t.home.heroOverline;
@@ -40,14 +51,14 @@ export function Hero({ title, overline, locale }: HeroProps) {
   ]);
 
   return (
-    <section className="relative h-[440px] md:h-[520px]">
+    <section className="relative h-[560px] md:h-[660px] lg:h-[min(78vh,780px)]">
       <div className="absolute inset-0">
         <Poster
           src={title.backdrop ?? title.poster}
           alt={title.title}
           ratio="wide"
           rounded={false}
-          priority
+          priority={priority}
           sizes="100vw"
           className="h-full shadow-none"
         />
@@ -58,7 +69,7 @@ export function Hero({ title, overline, locale }: HeroProps) {
         className="absolute inset-0 bg-[linear-gradient(to_top,var(--ink-1)_0%,rgba(16,17,19,0)_46%)]"
       />
 
-      <div className="page-gutter absolute inset-x-0 bottom-12 md:bottom-16">
+      <div className="page-gutter absolute inset-x-0 bottom-12 md:bottom-16 lg:bottom-20">
         <div className="mx-auto w-full max-w-(--container-content)">
           <div className="flex max-w-[520px] flex-col gap-5">
             <span className="type-overline text-muted-foreground">{eyebrow}</span>

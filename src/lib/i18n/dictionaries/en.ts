@@ -44,6 +44,9 @@ export const en: Dictionary = {
 
   home: {
     heroOverline: "A different way to watch",
+    heroPrev: "Previous title",
+    heroNext: "Next title",
+    heroSlide: (n: number, total: number) => `Title ${n} of ${total}`,
     continueWatching: "Continue watching",
     continueWatchingOverline: "Where you left off",
     newMovies: "New in film",

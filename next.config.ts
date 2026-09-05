@@ -48,6 +48,15 @@ function imageRemotePatterns(): RemotePattern[] {
 const allowLocalImageHosts = process.env.IMAGES_ALLOW_LOCAL_IP === "true";
 
 const nextConfig: NextConfig = {
+  /**
+   * Traces the server and only the `node_modules` it actually reaches into
+   * `.next/standalone`, so the Docker image carries a runtime rather than a
+   * dependency tree. `public/` and `.next/static` are excluded from that trace
+   * on the assumption a CDN serves them — there is none here, so the Dockerfile
+   * copies them back in.
+   */
+  output: "standalone",
+
   images: {
     remotePatterns: imageRemotePatterns(),
     dangerouslyAllowLocalIP: allowLocalImageHosts,

@@ -1,0 +1,28 @@
+# Installed inside the image, for the image's own platform.
+node_modules
+.next
+build
+
+# History and editor state have no business in a build context.
+.git
+.idea
+.vscode
+coverage
+*.tsbuildinfo
+.DS_Store
+
+# Vendored at install time by scripts/vendor-player.mjs, never carried in.
+public/vendor
+
+# Docker's own files: changing them must not invalidate the source layers.
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# Only the production env file crosses into the build. `.env.local` is loaded by
+# Next in every environment except test and takes precedence over
+# `.env.production`, so leaving it in would let a developer's machine-local API
+# address get baked into a production bundle.
+.env*
+!.env.production

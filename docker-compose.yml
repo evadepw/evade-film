@@ -2,7 +2,7 @@
 # context (see Dockerfile), so edit that file and rebuild rather than overriding
 # values here.
 services:
-  web:
+  frontend:
     build:
       context: .
     image: evade-film:latest
@@ -14,8 +14,24 @@ services:
     # bundle at build time and cannot be changed from here.
     env_file:
       - .env.production
-    # Lets `host.docker.internal` resolve on Linux too, where — unlike Docker
-    # Desktop — it is not provided by default. Needed when the catalog API runs
-    # on the host rather than in a container.
+    # How the container reaches the API when it is published on the host — the
+    # default in `.env.production`. On Docker Desktop the name already exists;
+    # on Linux this is what creates it.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+    # To talk to the catalog backend container directly instead, over its own
+    # compose network rather than out to the host and back through a published
+    # port, uncomment both blocks and set `API_URL=http://web:8000`. The backend
+    # answers by `Host:` header, so `web` has to be in its `ALLOWED_HOSTS` too.
+    # `external` means compose expects the network to exist: the backend stack
+    # has to be up first.
+    #
+    # networks:
+    #   - default
+    #   - catalog
+
+# networks:
+#   catalog:
+#     name: evadesite-backend_default
+#     external: true

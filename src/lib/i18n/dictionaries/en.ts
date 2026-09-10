@@ -22,6 +22,7 @@ export const en: Dictionary = {
     home: "Home",
     movies: "Movies",
     series: "Series",
+    collections: "Collections",
     search: "Search",
     notifications: "Notifications",
   },
@@ -80,6 +81,21 @@ export const en: Dictionary = {
     sortYear: "By year",
   },
 
+  collections: {
+    overline: "Collections",
+    title: "Collections",
+    description: "Themed sets put together by the editors.",
+    all: "All collections",
+    count: (n: number) => `${n} ${n === 1 ? "collection" : "collections"}`,
+    empty: "No collections yet.",
+    emptyHint: "The editors are still putting them together — check back later.",
+    emptyItems: "This collection is empty.",
+    emptyItemsHint: "Titles will show up here as soon as they are added.",
+    notFound: "Collection not found.",
+    notFoundHint: "Check the address, or open the list of collections.",
+    draft: "Draft",
+  },
+
   title: {
     overview: "Overview",
     episodes: "Episodes",
@@ -108,7 +124,6 @@ export const en: Dictionary = {
     title: "Watch",
     season: "Season",
     episode: "Episode",
-    voiceover: "Audio",
     loading: "Loading the stream",
     linkExpired: "The stream link has expired.",
     linkExpiredHint: "Reload the page to get a new one.",

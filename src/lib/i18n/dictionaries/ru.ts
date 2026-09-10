@@ -27,6 +27,7 @@ export const ru = {
     home: "Главная",
     movies: "Фильмы",
     series: "Сериалы",
+    collections: "Подборки",
     search: "Поиск",
     notifications: "Уведомления",
   },
@@ -85,6 +86,21 @@ export const ru = {
     sortYear: "По году",
   },
 
+  collections: {
+    overline: "Подборки",
+    title: "Подборки",
+    description: "Тематические наборы, которые собирает редакция.",
+    all: "Все подборки",
+    count: (n: number) => `${n} ${plural(n, "подборка", "подборки", "подборок")}`,
+    empty: "Подборок пока нет.",
+    emptyHint: "Редакция ещё собирает их — загляните позже.",
+    emptyItems: "В подборке пока пусто.",
+    emptyItemsHint: "Тайтлы появятся, как только их добавят.",
+    notFound: "Подборка не найдена.",
+    notFoundHint: "Проверьте адрес или откройте список подборок.",
+    draft: "Черновик",
+  },
+
   title: {
     overview: "Обзор",
     episodes: "Эпизоды",
@@ -113,7 +129,6 @@ export const ru = {
     title: "Просмотр",
     season: "Сезон",
     episode: "Эпизод",
-    voiceover: "Озвучка",
     loading: "Загрузка потока",
     linkExpired: "Ссылка на поток истекла.",
     linkExpiredHint: "Обновите страницу, чтобы получить новую.",

@@ -12,6 +12,9 @@ export type AppLocale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: AppLocale = "ru";
 
+/** Remembers the language the viewer last chose, so `/` sends them back to it. */
+export const LOCALE_COOKIE = "evade.locale";
+
 /**
  * What each language calls itself. Never translated: a list of languages is
  * read by someone who does not yet have the interface in their own — «Русский»

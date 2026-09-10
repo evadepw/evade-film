@@ -3,8 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 
 import { useLocale } from "@/lib/i18n/dictionary-context";
-import type { AppLocale } from "@/lib/i18n/locale";
-import { LOCALE_COOKIE } from "@/middleware";
+import { LOCALE_COOKIE, type AppLocale } from "@/lib/i18n/locale";
 
 /**
  * Records the choice for a year, site-wide. Outside the hook because the React
@@ -20,7 +19,7 @@ function remember(locale: AppLocale): void {
  *
  * Switching rewrites the first path segment, so the viewer stays on the page
  * they were reading, and records the choice in a cookie — that is what the
- * middleware consults the next time someone arrives at a bare address.
+ * proxy consults the next time someone arrives at a bare address.
  */
 export function useLocaleSwitch() {
   const current = useLocale();

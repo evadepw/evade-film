@@ -2,6 +2,9 @@ import { AxiosError, type AxiosAdapter, type AxiosRequestConfig, type AxiosRespo
 
 import { API_PAGE_SIZE } from "@/lib/api/config";
 import type {
+  CollectionDetailDto,
+  CollectionEntryDto,
+  CollectionListDto,
   MovieListDto,
   PaginatedDto,
   PlaybackBatchDto,
@@ -12,7 +15,15 @@ import type {
   WatchlistWriteDto,
 } from "@/lib/api/types";
 
-import { mockBranding, mockEpisodeVoiceovers, mockManifestUrl, mockMovies, mockSeries } from "./fixtures";
+import {
+  mockBranding,
+  mockCollections,
+  mockEpisodeVoiceovers,
+  mockManifestUrl,
+  mockMovies,
+  mockSeries,
+  type MockCollection,
+} from "./fixtures";
 import * as store from "./state";
 
 /**
@@ -296,8 +307,149 @@ function interactionRoutes(segment: string, type: store.MockContentType): Route[
   return routes;
 }
 
+/* --- Collections ---------------------------------------------------------- */
+
+/** The endpoint's own ceiling, and the default when a shelf names no limit. */
+const COLLECTION_ITEMS_LIMIT = 100;
+const COLLECTION_ITEMS_DEFAULT = 20;
+
+/** Every catalogue row as a collection card: the list shape plus a `type` tag. */
+function collectionEntries(): CollectionEntryDto[] {
+  return [
+    ...mockMovies.map(
+      (entry): CollectionEntryDto => ({
+        ...withStats("movie", entry.list.id, entry.list),
+        type: "movie",
+      }),
+    ),
+    ...mockSeries.map(
+      (entry): CollectionEntryDto => ({
+        ...withStats("series", entry.list.id, entry.list),
+        type: "series",
+      }),
+    ),
+  ];
+}
+
+/**
+ * What a shelf resolves to.
+ *
+ * Manual shelves hand back their pinned cards in the order they were pinned;
+ * dynamic ones run their resolver over the whole catalogue. The three sources
+ * are the ones the schema names, and `popular` and `top_rated` sort on the
+ * live counters from `./state` — so a title watched or rated in mock mode
+ * actually climbs its shelf.
+ */
+function resolveCollectionItems(entry: MockCollection, query: Query): CollectionEntryDto[] {
+  const all = collectionEntries();
+  const declared = Number((entry.shelf.source_params as Record<string, unknown> | null)?.limit);
+  const requested = Number(query.items_limit);
+  const limit = Math.min(
+    COLLECTION_ITEMS_LIMIT,
+    Number.isFinite(requested) && requested > 0
+      ? requested
+      : Number.isFinite(declared) && declared > 0
+        ? declared
+        : COLLECTION_ITEMS_DEFAULT,
+  );
+
+  if (entry.shelf.kind === "manual") {
+    return entry.pinned
+      .map((pin) => all.find((item) => item.type === pin.type && item.id === pin.id))
+      .filter((item): item is CollectionEntryDto => Boolean(item))
+      .slice(0, limit);
+  }
+
+  const sorted = [...all];
+  switch (entry.shelf.source) {
+    case "popular":
+      sorted.sort((a, b) => b.views_count - a.views_count);
+      break;
+    case "top_rated":
+      // Unrated titles sink rather than tie at the top, which is what the
+      // backend's `NULLS LAST` ordering does.
+      sorted.sort((a, b) => (b.rating_avg ?? -1) - (a.rating_avg ?? -1));
+      break;
+    default:
+      sorted.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  }
+  return sorted.slice(0, limit);
+}
+
+/** Drafts are staff-only, and the mock has no staff — published shelves only. */
+function publishedCollections(): MockCollection[] {
+  return mockCollections
+    .filter((entry) => entry.shelf.is_published)
+    .sort((a, b) => a.shelf.position - b.shelf.position);
+}
+
+function findCollection(id: string): MockCollection {
+  const found = publishedCollections().find((entry) => String(entry.shelf.id) === id);
+  if (!found) throw new NotFound();
+  return found;
+}
+
+function collectionDetail(entry: MockCollection, query: Query): CollectionDetailDto {
+  return { ...entry.shelf, items: resolveCollectionItems(entry, query) };
+}
+
+/**
+ * The list row drops the two fields only the detail serialiser carries, and
+ * leaves `items` null unless `expand=items` was asked for — the whole point of
+ * that parameter is that a client which forgets it gets nothing to render.
+ */
+function collectionRow(entry: MockCollection, query: Query): CollectionListDto {
+  const shelf = entry.shelf;
+  return {
+    id: shelf.id,
+    slug: shelf.slug,
+    title: shelf.title,
+    description: shelf.description,
+    kind: shelf.kind,
+    source: shelf.source,
+    poster: shelf.poster,
+    backdrop: shelf.backdrop,
+    position: shelf.position,
+    is_main: shelf.is_main,
+    is_published: shelf.is_published,
+    created_at: shelf.created_at,
+    items: query.expand === "items" ? resolveCollectionItems(entry, query) : null,
+  };
+}
+
 const routes: Route[] = [
   { pattern: new RegExp(`^${V1}/branding/$`), handle: () => mockBranding },
+
+  // `main` is matched before the numeric detail so the literal segment cannot
+  // be swallowed by an id pattern.
+  {
+    pattern: new RegExp(`^${V1}/collections/main/$`),
+    handle: (_params, query) => {
+      const main = publishedCollections().find((entry) => entry.shelf.is_main);
+      if (!main) throw new NotFound();
+      return collectionDetail(main, query);
+    },
+  },
+  {
+    pattern: new RegExp(`^${V1}/collections/$`),
+    handle: (_params, query) => {
+      const shelves = publishedCollections().filter((entry) =>
+        matchesSearch([entry.shelf.title, entry.shelf.slug], query.search),
+      );
+      return paginate(
+        shelves.map((entry) => collectionRow(entry, query)),
+        query,
+      );
+    },
+  },
+  {
+    pattern: new RegExp(`^${V1}/collections/(\\d+)/$`),
+    handle: ([id], query) => collectionDetail(findCollection(id), query),
+  },
+  {
+    pattern: new RegExp(`^${V1}/collections/(\\d+)/items/$`),
+    handle: ([id], query) => resolveCollectionItems(findCollection(id), query),
+  },
 
   {
     pattern: new RegExp(`^${CATALOG}/movies/$`),

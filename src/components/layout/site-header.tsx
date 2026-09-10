@@ -17,6 +17,7 @@ const navItems = (t: Dictionary, routes: Routes) =>
     { href: routes.home, label: t.nav.home },
     { href: routes.movies, label: t.nav.movies },
     { href: routes.seriesList, label: t.nav.series },
+    { href: routes.collections, label: t.nav.collections },
   ] as const;
 
 export interface SiteHeaderProps {

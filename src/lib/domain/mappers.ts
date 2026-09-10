@@ -8,6 +8,9 @@ import { DEFAULT_LOCALE, toLocale, languageName, translate } from "@/lib/i18n/lo
  */
 const UNTITLED = "—";
 import type {
+  CollectionDetailDto,
+  CollectionEntryDto,
+  CollectionListDto,
   CommentDto,
   ContentStatsDto,
   CommentThreadDto,
@@ -36,6 +39,7 @@ import type {
 import type {
   AudioTrack,
   Branding,
+  Collection,
   Comment,
   CommentThread,
   ContentRef,
@@ -126,6 +130,62 @@ export function mapSeriesSummary(
     duration: null,
     seasonCount: dto.season_count,
     href: routes.series(dto.id),
+  };
+}
+
+/* --- Collections ---------------------------------------------------------- */
+
+/**
+ * A collection card. The backend tags each one `movie` or `series` and is
+ * otherwise field-for-field the catalogue's own list rows, so both fall
+ * through to the summary mappers above and come out as one `TitleSummary` the
+ * existing rails and grids already render.
+ */
+export function mapCollectionEntry(
+  dto: CollectionEntryDto,
+  locale: string = DEFAULT_LOCALE,
+): TitleSummary {
+  return dto.type === "series" ? mapSeriesSummary(dto, locale) : mapMovieSummary(dto, locale);
+}
+
+export function mapCollection(
+  dto: CollectionListDto,
+  locale: string = DEFAULT_LOCALE,
+): Collection {
+  const routes = localeRoutes(toLocale(locale));
+  return {
+    id: dto.id,
+    // The slug is the one field a shelf cannot be published without, so it is
+    // also the only sane last resort for a title nobody translated.
+    slug: dto.slug,
+    title: nullIfBlank(dto.title) ?? dto.slug,
+    description: nullIfBlank(dto.description),
+    kind: dto.kind,
+    source: dto.source ? dto.source : null,
+    poster: nullIfBlank(dto.poster),
+    backdrop: nullIfBlank(dto.backdrop),
+    position: dto.position,
+    isMain: dto.is_main,
+    isPublished: dto.is_published,
+    items: dto.items ? dto.items.map((item) => mapCollectionEntry(item, locale)) : null,
+    href: routes.collection(dto.slug),
+  };
+}
+
+/**
+ * The detail endpoint is the only one that carries the translations dict — the
+ * list resolves a single language server-side — so it is the only place the
+ * viewer's own language can actually be honoured rather than accepted.
+ */
+export function mapCollectionDetail(
+  dto: CollectionDetailDto,
+  locale: string = DEFAULT_LOCALE,
+): Collection {
+  const base = mapCollection(dto, locale);
+  return {
+    ...base,
+    title: translate(dto.translations, "title", locale) ?? base.title,
+    description: translate(dto.translations, "description", locale) ?? base.description,
   };
 }
 

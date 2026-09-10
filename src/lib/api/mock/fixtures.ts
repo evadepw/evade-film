@@ -1,4 +1,5 @@
 import type {
+  CollectionDetailDto,
   MovieDetailDto,
   MovieListDto,
   OrganizationDto,
@@ -414,4 +415,135 @@ export const mockSeries: MockSeries[] = [
 export const mockEpisodeVoiceovers = [
   { id: 7001, studio: null, studio_name: null, language: "ru", label: "Дубляж", audio_track_index: 0 },
   { id: 7002, studio: 12, studio_name: "Кубик в кубе", language: "ru", label: "Многоголосый", audio_track_index: 1 },
+];
+
+/* --- Collections ---------------------------------------------------------- */
+
+/**
+ * Editorial shelves. The `items` are left off the fixture and resolved by the
+ * adapter — pinned ones for a manual shelf, a query over the catalogue for a
+ * dynamic one — because that is where the real difference between the two
+ * kinds lives, and a fixture that hard-codes both would never exercise it.
+ */
+export interface MockCollection {
+  shelf: Omit<CollectionDetailDto, "items">;
+  /** Manual shelves only: the pinned cards, in the order they were pinned. */
+  pinned: Array<{ type: "movie" | "series"; id: number }>;
+}
+
+function collection(
+  id: number,
+  input: {
+    slug: string;
+    title: string;
+    titleEn: string;
+    description?: string;
+    descriptionEn?: string;
+    kind: CollectionDetailDto["kind"];
+    source?: CollectionDetailDto["source"];
+    sourceParams?: Record<string, unknown>;
+    position: number;
+    isMain?: boolean;
+    isPublished?: boolean;
+    pinned?: MockCollection["pinned"];
+  },
+): MockCollection {
+  return {
+    shelf: {
+      id,
+      slug: input.slug,
+      translations: {
+        ru: { title: input.title, description: input.description ?? "" },
+        en: { title: input.titleEn, description: input.descriptionEn ?? "" },
+      },
+      // The list serialiser resolves one language server-side; the fixture is
+      // Russian-first for the same reason the dictionaries are.
+      title: input.title,
+      description: input.description ?? "",
+      kind: input.kind,
+      source: input.source ?? "",
+      source_params: input.sourceParams ?? {},
+      poster: null,
+      backdrop: null,
+      position: input.position,
+      is_main: input.isMain ?? false,
+      is_published: input.isPublished ?? true,
+      created_at: "2024-11-01T09:00:00Z",
+      updated_at: "2024-11-01T09:00:00Z",
+    },
+    pinned: input.pinned ?? [],
+  };
+}
+
+export const mockCollections: MockCollection[] = [
+  collection(1, {
+    slug: "watch-now",
+    title: "Смотрите сейчас",
+    titleEn: "Watch now",
+    kind: "manual",
+    position: 0,
+    isMain: true,
+    pinned: [
+      { type: "movie", id: 101 },
+      { type: "series", id: 201 },
+      { type: "movie", id: 103 },
+      { type: "series", id: 202 },
+      { type: "movie", id: 105 },
+    ],
+  }),
+  collection(2, {
+    slug: "new-this-week",
+    title: "Новинки недели",
+    titleEn: "New this week",
+    description: "Что появилось в каталоге за последние дни.",
+    descriptionEn: "What landed in the catalogue over the past few days.",
+    kind: "dynamic",
+    source: "new",
+    sourceParams: { limit: 12 },
+    position: 1,
+  }),
+  collection(3, {
+    slug: "most-watched",
+    title: "Смотрят чаще всего",
+    titleEn: "Most watched",
+    kind: "dynamic",
+    source: "popular",
+    sourceParams: { limit: 12 },
+    position: 2,
+  }),
+  collection(4, {
+    slug: "top-rated",
+    title: "С высокой оценкой",
+    titleEn: "Top rated",
+    kind: "dynamic",
+    source: "top_rated",
+    sourceParams: { limit: 12 },
+    position: 3,
+  }),
+  collection(5, {
+    slug: "russian-drama",
+    title: "Русская драма",
+    titleEn: "Russian drama",
+    description: "Отобрано редакцией.",
+    descriptionEn: "Picked by the editors.",
+    kind: "manual",
+    position: 4,
+    pinned: [
+      { type: "movie", id: 101 },
+      { type: "movie", id: 104 },
+      { type: "series", id: 203 },
+      { type: "movie", id: 106 },
+    ],
+  }),
+  // A draft: published shelves are all an anonymous caller is served, so the
+  // mock has one to prove the filter is actually applied.
+  collection(6, {
+    slug: "coming-soon",
+    title: "Скоро",
+    titleEn: "Coming soon",
+    kind: "manual",
+    position: 5,
+    isPublished: false,
+    pinned: [{ type: "series", id: 204 }],
+  }),
 ];

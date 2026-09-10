@@ -33,6 +33,22 @@ export const endpoints = {
     publicProfile: (username: string) => `${V1}/auth/users/${encodeURIComponent(username)}/`,
   },
 
+  /**
+   * Editorial shelves. They live outside `/catalog/` because a collection is
+   * not a content type — it is an ordering over two of them, resolved by the
+   * backend (pinned items for a manual one, a query for a dynamic one).
+   *
+   * `detail` and `items` take the numeric id, not the slug: the slug is the
+   * frontend's routing key and is resolved against `list`.
+   */
+  collections: {
+    list: `${V1}/collections/`,
+    detail: (id: number | string) => `${V1}/collections/${id}/`,
+    items: (id: number | string) => `${V1}/collections/${id}/items/`,
+    /** The one shelf flagged as main. 404 when nothing is flagged. */
+    main: `${V1}/collections/main/`,
+  },
+
   movies: {
     list: `${CATALOG}/movies/`,
     detail: (id: number | string) => `${CATALOG}/movies/${id}/`,

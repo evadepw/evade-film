@@ -1,15 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { SeasonOption } from "evade-player";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { StateBlock } from "@/components/feedback/state-block";
 import { VideoPlayerSurface } from "@/components/player/video-player";
 import { useManifestRecovery } from "@/hooks/use-manifest-recovery";
@@ -29,12 +23,27 @@ export interface MoviePlayerProps {
 }
 
 /**
+ * The player's content selector is driven by the season/episode hierarchy, and
+ * a movie has none — so it is handed one synthetic season holding one synthetic
+ * episode, which exists only to carry the voiceovers.
+ *
+ * The value is shared by both levels because nothing ever reads it back: the
+ * player matches `currentSeason` and `currentEpisode` against it to find the
+ * episode whose voiceovers to list, and that is all it is for.
+ */
+const MOVIE = "movie";
+
+/** The film's own audio — a manifest requested without a `voiceover_track`. */
+const ORIGINAL = "original";
+
+/**
  * Movie playback.
  *
- * A movie has no season/episode hierarchy, so the player's content selector
- * stays out of the way and voiceover switching happens here: picking a track
- * re-requests a signed manifest with `voiceover_track`, because the signature
- * is per-rendition and short-lived.
+ * Voiceover switching re-requests a signed manifest with `voiceover_track`,
+ * because the signature is per-rendition and short-lived. Unlike a series —
+ * whose `playback-batch` signs the whole tree at once — a movie has no batch
+ * endpoint, so the tracks are offered without a `src` and the chosen one is
+ * fetched here.
  */
 export function MoviePlayer({
   movieId,
@@ -51,6 +60,38 @@ export function MoviePlayer({
   // Resume point and view counter. Switching the voiceover re-requests a
   // manifest but stays the same movie, so tracking is not keyed by track.
   const { savedState, onSaveState } = usePlaybackTracking("movie", movieId);
+
+  /**
+   * The dubs, plus the original the viewer has to be able to get back to.
+   *
+   * No `src` on any of them: the player would use one directly, but each is a
+   * separate signed request, and signing every track up front to fill a menu
+   * most viewers never open is worse than signing the one they pick.
+   */
+  const voiceovers = useMemo(
+    () => [
+      { label: t.title.noVoiceover, value: ORIGINAL },
+      ...audioTracks.map((track) => ({ label: track.label, value: String(track.id) })),
+    ],
+    [audioTracks, t.title.noVoiceover],
+  );
+
+  /**
+   * Undefined below one dub, which is what hides the selector: with nothing to
+   * choose between, «оригинальная дорожка» is not a choice.
+   */
+  const seasons: SeasonOption[] | undefined = useMemo(
+    () =>
+      audioTracks.length > 1
+        ? [{ label: title, value: MOVIE, episodes: [{ label: title, value: MOVIE, voiceovers }] }]
+        : undefined,
+    [audioTracks.length, title, voiceovers],
+  );
+
+  const onVoiceoverChange = useCallback(
+    (value: string) => setTrackId(value === ORIGINAL ? null : Number(value)),
+    [],
+  );
 
   /**
    * The rescue fetch for an expired signature. Deliberately a direct service
@@ -88,7 +129,7 @@ export function MoviePlayer({
   if (!source) return null;
 
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <VideoPlayerSurface
         key={source.manifestUrl}
         ref={playerRef}
@@ -98,31 +139,22 @@ export function MoviePlayer({
         onSaveState={onSaveState}
         onPlaybackError={onPlaybackError}
         errorDescription={t.player.linkExpired}
+        // Hides the season and episode placeholders the synthetic tree below
+        // produces — see the rule of the same name in `video-player.css`.
+        className={seasons ? "evade-player-voiceover-only" : undefined}
+        seasons={seasons}
+        // Both levels are matched against the synthetic value: it is how the
+        // player finds the episode whose voiceovers to list. No season or
+        // episode handler is passed, but that does not stop those two dropdowns
+        // rendering — the web component supplies its own — so they are hidden
+        // in CSS instead.
+        currentSeason={seasons ? MOVIE : undefined}
+        currentEpisode={seasons ? MOVIE : undefined}
+        currentVoiceover={seasons ? (trackId === null ? ORIGINAL : String(trackId)) : undefined}
+        onVoiceoverChange={seasons ? onVoiceoverChange : undefined}
       />
 
-      {audioTracks.length > 1 ? (
-        <div className="flex items-center gap-3">
-          <span className="type-label text-muted-foreground">{t.player.voiceover}</span>
-          <Select
-            value={trackId === null ? "original" : String(trackId)}
-            onValueChange={(value) => setTrackId(value === "original" ? null : Number(value))}
-          >
-            <SelectTrigger className="w-[240px]" aria-label={t.player.voiceover}>
-              <SelectValue placeholder={t.title.noVoiceover} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="original">{t.title.noVoiceover}</SelectItem>
-              {audioTracks.map((track) => (
-                <SelectItem key={track.id} value={String(track.id)}>
-                  {track.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
-
       <span className="sr-only">{title}</span>
-    </div>
+    </>
   );
 }

@@ -474,3 +474,74 @@ export interface WatchlistListParams extends SearchParams {
 export interface HistoryListParams extends SearchParams {
   finished?: boolean;
 }
+
+/* --- Collections --------------------------------------------------------- */
+
+export type CollectionKind = "manual" | "dynamic";
+
+/** Which resolver fills a dynamic collection. Blank on a manual one. */
+export type CollectionSource = "new" | "popular" | "top_rated";
+
+export type CollectionTranslationField = "title" | "description";
+
+/**
+ * A card inside a collection. Field-for-field the catalogue's own list rows
+ * plus a `type` discriminator, which is what lets one collection hold both
+ * kinds and still be mapped by the existing summary mappers.
+ */
+export interface CollectionMovieDto extends MovieListDto {
+  type: "movie";
+}
+
+export interface CollectionSeriesDto extends SeriesListDto {
+  type: "series";
+}
+
+export type CollectionEntryDto = CollectionMovieDto | CollectionSeriesDto;
+
+/** A row of `/collections/`: one resolved title, cards only on request. */
+export interface CollectionListDto {
+  id: number;
+  /** Stable key the frontend routes and caches on, e.g. `new-this-week`. */
+  slug: string;
+  title: string;
+  description: string;
+  kind: CollectionKind;
+  /** Empty string on manual collections. */
+  source: CollectionSource | "";
+  poster: string | null;
+  backdrop: string | null;
+  /** Sort order on the home page — lower comes first. */
+  position: number;
+  /** The single featured collection. At most one carries it. */
+  is_main: boolean;
+  is_published: boolean;
+  /** Null unless `expand=items` was asked for — not the same as empty. */
+  items: CollectionEntryDto[] | null;
+  created_at: string;
+}
+
+/** `/collections/{id}/`: the row above plus the writable translations dict. */
+export interface CollectionDetailDto extends CollectionListDto {
+  translations: TranslationsDto<CollectionTranslationField>;
+  /** Dynamic only, e.g. `{ limit: 20, types: ["movie"], year_min: 2020 }`. */
+  source_params: Record<string, unknown> | null;
+  updated_at: string;
+}
+
+/** Shared by every collection read: how many cards to resolve, max 100. */
+export interface CollectionItemsParams {
+  items_limit?: number;
+  /** Not in the schema; sent for parity with the catalogue's list endpoints. */
+  lang?: string;
+}
+
+export interface CollectionListParams extends CollectionItemsParams, PaginationParams {
+  /**
+   * Inline every row's cards — one request for a whole home page instead of
+   * one per rail. Omitted, `items` comes back null.
+   */
+  expand?: "items";
+  ordering?: string;
+  search?: string;
+}

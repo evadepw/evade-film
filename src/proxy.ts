@@ -1,9 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { DEFAULT_LOCALE, LOCALES, isLocale } from "@/lib/i18n/locale";
-
-/** Remembers the language the viewer last chose, so `/` sends them back to it. */
-export const LOCALE_COOKIE = "evade.locale";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n/locale";
 
 /**
  * Puts a language on every address.
@@ -27,7 +24,7 @@ function preferred(request: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const first = pathname.split("/")[1];
@@ -50,5 +47,3 @@ export const config = {
     "/((?!api|_next|vendor|favicon.ico|robots.txt|sitemap.xml|.*\\.[^/]+$).*)",
   ],
 };
-
-export { LOCALES };

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { catalogService } from "@/lib/api/services/catalog.service";
+import { collectionsService } from "@/lib/api/services/collections.service";
 import { orderedEpisodes } from "@/lib/episodes";
 import { LOCALES } from "@/lib/i18n/locale";
 import { localeRoutes } from "@/lib/routes";
@@ -66,13 +67,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...entry((r) => r.home, { changeFrequency: "daily", priority: 1 }),
     ...entry((r) => r.movies, { changeFrequency: "daily", priority: 0.8 }),
     ...entry((r) => r.seriesList, { changeFrequency: "daily", priority: 0.8 }),
+    ...entry((r) => r.collections, { changeFrequency: "weekly", priority: 0.6 }),
     ...entry((r) => r.search(), { changeFrequency: "monthly", priority: 0.3 }),
   ];
 
   // A listing that fails costs its own titles, not the whole sitemap.
-  const [movies, series] = await Promise.all([
+  const [movies, series, collections] = await Promise.all([
     collect((page) => catalogService.listMovies({ page, ordering: "-created_at" })).catch(() => []),
     collect((page) => catalogService.listSeries({ page, ordering: "-created_at" })).catch(() => []),
+    // Shelves are few and hand-authored, so the first page is all of them in
+    // practice — and `expand` is deliberately omitted: a sitemap needs the
+    // addresses, not the contents.
+    collectionsService
+      .listCollections()
+      .then((page) => page.items)
+      .catch(() => []),
   ]);
 
   /**
@@ -96,6 +105,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...statics,
+    ...collections.flatMap((collection) =>
+      entry((r) => r.collection(collection.slug), {
+        changeFrequency: "weekly",
+        priority: 0.5,
+      }),
+    ),
     ...[...movies, ...series].flatMap((title) =>
       entry(
         (r) => (title.kind === "movie" ? r.movie(title.id) : r.series(title.id)),

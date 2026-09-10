@@ -40,6 +40,45 @@ export interface TitleSummary extends ContentStats {
   href: string;
 }
 
+/* --- Collections ---------------------------------------------------------- */
+
+export type CollectionKind = "manual" | "dynamic";
+
+/** Which resolver fills a dynamic collection. Null on a manual one. */
+export type CollectionSource = "new" | "popular" | "top_rated";
+
+/**
+ * An editorial shelf: a titled, ordered set of titles the admin curates.
+ *
+ * `kind` is the only thing that separates a hand-pinned shelf from a computed
+ * one, and the UI deliberately does not act on it — both resolve to the same
+ * list of cards, and a viewer should not be able to tell which is which.
+ */
+export interface Collection {
+  id: number;
+  /** Stable key the frontend routes and caches on. */
+  slug: string;
+  title: string;
+  description: string | null;
+  kind: CollectionKind;
+  source: CollectionSource | null;
+  poster: string | null;
+  backdrop: string | null;
+  /** Sort order on the home page — lower comes first. */
+  position: number;
+  /** The single featured shelf, which the home page draws its hero from. */
+  isMain: boolean;
+  /** False for a draft. Only staff are served those at all. */
+  isPublished: boolean;
+  /**
+   * Null when the cards were not asked for, which is not the same as a shelf
+   * that resolved to none: a rail renders nothing for the second and has to
+   * fetch for the first.
+   */
+  items: TitleSummary[] | null;
+  href: string;
+}
+
 export interface AudioTrack {
   id: number;
   language: string;

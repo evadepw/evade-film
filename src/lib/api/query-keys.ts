@@ -1,5 +1,7 @@
 import type {
   CatalogListParams,
+  CollectionItemsParams,
+  CollectionListParams,
   CommentListParams,
   HistoryListParams,
   PlaybackParams,
@@ -29,6 +31,17 @@ export const queryKeys = {
     detail: (id: number | string) => ["series", "detail", id] as const,
     playback: (id: number | string, params: PlaybackParams) =>
       ["series", "playback", id, params] as const,
+  },
+
+  collections: {
+    all: ["collections"] as const,
+    list: (params: CollectionListParams) => ["collections", "list", params] as const,
+    /** Keyed on the slug the route carries, id or not — that is what a page holds. */
+    detail: (slug: string, params: CollectionItemsParams) =>
+      ["collections", "detail", slug, params] as const,
+    items: (id: number | string, params: CollectionItemsParams) =>
+      ["collections", "items", id, params] as const,
+    main: (params: CollectionItemsParams) => ["collections", "main", params] as const,
   },
 
   search: (query: string, params: CatalogListParams) => ["search", query, params] as const,

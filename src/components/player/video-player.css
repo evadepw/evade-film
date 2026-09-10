@@ -27,3 +27,24 @@
     border-radius: 0;
   }
 }
+
+/**
+ * Movies: the voiceover picker on its own.
+ *
+ * The player's content selector is one unit — given `seasons` it renders season,
+ * episode and voiceover together, and the vendored web component wires all three
+ * change handlers itself, so no prop turns the first two off. Dropping the
+ * episodes to hide the episode button empties the list the voiceovers hang from
+ * and takes the voiceover button with it, so `MoviePlayer` feeds it a synthetic
+ * one-season/one-episode tree and the two placeholders that produces — both
+ * labelled with the film's own title — are hidden here.
+ *
+ * Positional because the three are siblings with identical classes. They render
+ * in a fixed order, so the first two are the ones to drop; written as an
+ * explicit pair rather than `:not(:last-child)` so that a player release adding
+ * a fourth control leaves that one visible instead of hiding the voiceovers.
+ */
+.evade-player-voiceover-only .media-content-controls > :nth-child(1),
+.evade-player-voiceover-only .media-content-controls > :nth-child(2) {
+  display: none;
+}

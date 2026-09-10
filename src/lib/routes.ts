@@ -31,6 +31,10 @@ function build(locale: AppLocale) {
       const suffix = query.size ? `?${query}` : "";
       return at(`/series/${id}/watch${suffix}`);
     },
+    /** Editorial shelves. Routed on the slug — stable, readable, shareable. */
+    collections: at("/collections"),
+    collection: (slug: string) => at(`/collections/${encodeURIComponent(slug)}`),
+
     search: (query?: string) =>
       query ? at(`/search?q=${encodeURIComponent(query)}`) : at("/search"),
 
